@@ -170,17 +170,11 @@ body{background:#f5f5f5;padding:24px 0 60px}
               <li>LOS listens for the Pub/Sub notification and determines when to ingest the deal.</li>
               <li>LOS makes an API call to BIS to pull the transformed deal.</li>
               <li>LOS onboards the deal and populates application data fields.</li>
-              <li><strong>Quebec-specific:</strong> LOS sets Application Language Preference based on the Primary Borrower's language preference — either <em>French</em> or <em>English</em> (FR-01). This is saved to the App Intake snapshot and made available for downstream consumers.</li>
-              <li>Borrower language preference(s) pushed downstream to Salesforce and LMS.</li>
-              <li><strong>Quebec-specific:</strong> LOS applies Quebec Property Tiering rules to assign the appropriate risk tier to the subject property (NFR-15).</li>
-              <li><strong>Quebec-specific:</strong> LOS validates Quebec as a supported province via Qualification Checks (NFR-07). Subject property must be in a supported Tier 1 region (Montreal, Quebec City, or Gatineau).</li>
             </ol>
           </div>
           <div class="pills">
             <span class="pill p-los">LOS</span>
             <span class="pill p-fr">FR-01</span>
-            <span class="pill p-nfr">NFR-07</span>
-            <span class="pill p-nfr">NFR-15</span>
           </div>
         </div>
 
@@ -190,15 +184,21 @@ body{background:#f5f5f5;padding:24px 0 60px}
         <!-- SPLIT: Province supported / not supported -->
         <div class="split" style="align-items:stretch">
 
-          <!-- Unsupported Province -->
+      
+
+                    <!-- Other  Province -->
           <div class="branch">
             <div class="vline"></div>
-            <div class="blabel blabel-red">Subject province NOT supported</div>
+            <div class="blabel blabel-amber">Subject Property Province NOT Quebec</div>
             <div style="width:100%">
-              <div class="box b-red"><p>Application Status → <strong>Declined</strong> (automated).</p></div>
-              <div class="pills">
+               <div class="box b-amber">
+                  <ol><li>Application data onboarded.
+                  </li>
+                  <li>Follow standard non-Quebec deal flow.
+                  </li>
+                </ol>
+                </div>              <div class="pills">
                 <span class="pill p-los">LOS</span>
-                <span class="pill p-nfr">NFR-07</span>
               </div>
             </div>
             <div class="vline" style="flex:1;min-height:20px"></div>
@@ -207,15 +207,23 @@ body{background:#f5f5f5;padding:24px 0 60px}
           <!-- Quebec Province OK -->
           <div class="branch">
             <div class="vline"></div>
-            <div class="blabel blabel-green">Subject property = Quebec (supported)</div>
+            <div class="blabel blabel-green">Subject Property Province = Quebec (supported)</div>
             <div class="col">
+
+              
 
               <!-- LOS ingestion confirmed -->
               <div style="width:100%">
                 <div class="box b-green">
-                  <ol><li>LOS ingestion successful. Application data onboarded.</li></ol>
+                  <ol><li>Application data onboarded.</li>
+                      <li>LOS sets Application Language Preference based on the Primary Borrower's language preference.</li>
+                      <li>LOS applies Quebec Property Tiering rules to assign the appropriate risk tier to the subject property (NFR-15).</li>
+                      <li>LOS validates Quebec as a supported province via Qualification Checks (NFR-07).</li>
+                  </ol>
                 </div>
-                <div class="pills"><span class="pill p-los">LOS</span></div>
+                <div class="pills"><span class="pill p-los">LOS</span>
+                  <span class="pill p-nfr">NFR-07</span>
+            <span class="pill p-nfr">NFR-15</span></div>
               </div>
 
               <div class="vline"></div>
@@ -225,6 +233,7 @@ body{background:#f5f5f5;padding:24px 0 60px}
                 <div class="box b-teal">
                   <ol>
                     <li>Application data pushed to Salesforce CRM.</li>
+                    <li>Loan appears in Broker Portal.</li>
                   </ol>
                 </div>
                 <div class="pills">
