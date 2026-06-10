@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Tree B2 — Deal Allocation to Underwriter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f5f5f5;padding:24px 0 60px;position:relative}
+.wrap{padding:20px 16px 40px;width:100%;max-width:960px;margin:0 auto;font-family:sans-serif}
+
+/* Legend bar */
+.legend-bar{background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px 14px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.legend-bar .legend-title{font-size:10px;font-weight:700;color:#555;margin-right:4px}
+
+/* Core layout */
+.col{display:flex;flex-direction:column;align-items:center;width:100%}
+.vline{width:2px;background:#888;height:24px;flex-shrink:0}
+.hline{width:100%;height:2px;background:#888}
+
+/* Boxes */
+.box{border-radius:8px;padding:12px 14px;width:100%}
+.box ol{font-size:12px;line-height:1.8;padding-left:16px;margin:0;color:#1a1a1a}
+.box p{font-size:12px;line-height:1.6;margin:0;text-align:center;color:#1a1a1a}
+.b-dark{background:#17580a}.b-dark p{color:#fff;font-weight:600;font-size:13px}
+.b-green{background:#d4edda;border:2px solid #5cb85c}.b-green ol{color:#1a3c1a}.b-green p{color:#1a3c1a}
+.b-amber{background:#fff8e1;border:2px solid #f9a825}.b-amber ol{color:#3e2000}.b-amber p{color:#3e2000}
+.b-purple{background:#e7d0fd;border:2px solid #520da1}.b-amber ol{color:#3e2000}.b-amber p{color:#3e2000}
+.b-blue{background:#e3f2fd;border:2px solid #1976d2}.b-blue ol{color:#0d2a4a}.b-blue p{color:#0d2a4a}
+.b-teal{background:#e0f2f1;border:2px solid #00796b}.b-teal ol{color:#002e28}.b-teal p{color:#002e28}
+.b-purple{background:#f3e5f5;border:2px solid #7b1fa2}.b-purple ol{color:#2e0042}.b-purple p{color:#2e0042}
+
+/* Pills */
+.pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px;width:100%}
+.pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap}
+.p-los{background:#c8e6c9;color:#1b5e20}
+.p-uwr{background:#bbdefb;color:#0d47a1}
+.p-man{background:#e7d0fd;color:#520da1}
+.p-ob{background:#fff8e1;color:#e65100}
+.p-fr{background:#f8bbd0;color:#880e4f}
+.p-nfr{background:#d7ccc8;color:#3e2723}
+.p-uc{background:#e0f7fa;color:#006064}
+.p-sf{background:#e8f5e9;color:#1b5e20}
+
+/* Branch labels */
+.blabel{font-size:10px;font-weight:700;margin-bottom:6px;text-align:center;padding:2px 6px;border-radius:4px}
+.blabel-green{color:#1b5e20;background:#d4edda}
+.blabel-amber{color:#e65100;background:#fff8e1}
+.blabel-purple{color:#520da1;background:#e7d0fd}
+
+/* Split — only ever 2 columns: main happy path + one fallback */
+.split{display:flex;align-items:flex-start;justify-content:center;width:100%;gap:16px}
+.branch-main{display:flex;flex-direction:column;align-items:center;flex:2;min-width:0}
+.branch-fallback1{display:flex;flex-direction:column;align-items:center;flex:none;width:29%}
+.branch-fallback2{display:flex;flex-direction:column;align-items:center;flex:none;width:33%}
+.branch-fallback3{display:flex;flex-direction:column;align-items:center;flex:none;width:40%}
+
+
+/* Section header */
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#666;border-top:1px dashed #ccc;padding-top:10px;margin:4px 0 8px;width:100%;text-align:center}
+
+/* Note box */
+.note{background:#fffde7;border-left:3px solid #f9a825;border-radius:4px;padding:8px 10px;font-size:11px;color:#5d4037;width:100%;margin-top:6px}
+.note strong{color:#e65100}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Legend -->
+<div class="legend-bar">
+  <div style="margin-bottom:10px;font-size:15px;color:#000000;text-align:left;width:100%;line-height:1.7em;">
+    Tree B2 · Quebec Deal Allocation Flow: LOS Onboarding → Underwriter Assignment
+    <br>
+    Author: <a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD">Dan Levesque</a> · v1.0 Draft · Status: <i>Draft for Review</i>
+  </div>
+  <span class="legend-title">LEGEND:</span>
+  <span class="pill p-los">LOS</span>
+  <span class="pill p-uwr">Underwriter</span>
+  <span class="pill p-man">Manager</span>
+  <span class="pill p-ob">Onboarding Team</span>
+  <span class="pill p-sf">Salesforce</span>
+  <span class="pill p-fr">FR-XX Functional Req</span>
+  <span class="pill p-uc">UC-XX Use Case</span>
+</div>
+
+<div class="col">
+
+  <!-- TRIGGER -->
+  <div style="width:440px">
+    <div class="box b-dark"><p>Deal successfully ingested and onboarded in LOS.<br>(From <a href="B1_Application_Ingestion.html" style="color: white">Tree B1: Application Ingestion Process)</a><br><br>LOS triggers the Deal Allocation process.</p></div>
+    <div class="pills">
+      <span class="pill p-los">LOS</span>
+      <span class="pill p-uc">BRK-01</span>
+      <span class="pill p-fr">FR-07</span>
+    </div>
+  </div>
+
+  <div class="vline"></div>
+
+  <!-- STEP: Province confirmation -->
+  <div style="width:100%">
+<div class="blabel blabel-green" style="width: 50%; margin: 0 auto; margin-bottom: 5px; text-align: center;">Subject Property Province = Quebec</div>    
+<div class="box b-green">
+      
+      <ol>
+        <li>LOS checks whether a Broker profile with the same Profile ID exists in the system.</li>
+        <li>LOS simultaneously checks whether a Brokerage with the same Firm Code exists in the system.</li>
+      </ol>
+    </div>
+    <div class="pills">
+      <span class="pill p-los">LOS</span>
+      <span class="pill p-fr">FR-07</span>
+      <span class="pill p-uc">UWR-01</span>
+    </div>
+  </div>
+
+  <div class="vline"></div>
+
+  <!-- ── DECISION 1: Broker / Brokerage in system? ── -->
+  <div class="hline"></div>
+  <div class="split" style="align-items:stretch">
+
+    <!-- FALLBACK: Broker not found -->
+    <div class="branch-fallback1">
+      <div class="vline"></div>
+      <div class="blabel blabel-amber">EITHER Broker or Brokerage NOT found</div>
+      <div style="width:100%" id="amber-box-1">
+        <div class="box b-amber">
+          <ol>
+            <li>LOS sets Application Status → <strong>Onboarding Broker</strong>.</li>
+            <li>Automatic deal allocation is skipped.</li>
+            <li>If Broker or Brokerage are already known, they are auto-associated to loan on LOS. Otherwise association is left blank.</li>
+            <li>Onboarding Team notified to complete broker onboarding.</li>
+            <li>Onboarding Team contacts broker to begin onboarding process. AMF licence number captured and verified.</li>
+            <li>When onboarding is complete, Broker is assigned to Quebec Sales Region and set to <strong>Active</strong>.</li>
+            <li>Once Broker and/or Brokerage are created in the system, Onboarding Team manually associates them to the loan on the LOS.</li>
+            <li>Onboarding Team moves application milestone to <strong>Received</strong>.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-ob">Onboarding Team</span>
+          <span class="pill p-sf">Salesforce</span>
+          <span class="pill p-uc">BRK-02</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- HAPPY PATH: Broker found -->
+    <div class="branch-main">
+      <div class="vline"></div>
+      <div class="blabel blabel-green">BOTH Broker &amp; Brokerage already exist in system</div>
+      <div class="col">
+
+        <!-- Step 1 -->
+        <div style="width:100%">
+          <div class="box b-green">
+            <ol>
+              <li>Broker is associated to the application.</li>
+              <li>Brokerage is associated to the application.</li>
+              <li>LOS checks: is the Broker–Brokerage relationship status <strong>Active</strong> with an assigned sales region?</li>
+            </ol>
+          </div>
+          <div class="pills">
+            <span class="pill p-los">LOS</span>
+            <span class="pill p-fr">FR-07</span>
+            <span class="pill p-uc">UWR-01</span>
+          </div>
+        </div>
+
+        <div class="vline"></div>
+
+        <!-- ── DECISION 2: Active + Sales Region? ── -->
+        <div class="hline"></div>
+        <div class="split" style="align-items:stretch">
+
+          <!-- FALLBACK: Pending or no Sales Region -->
+          <div class="branch-fallback2">
+            <div class="vline"></div>
+            <div class="blabel blabel-amber">Broker Inactive OR no Sales Region</div>
+            <div style="width:100%" id="amber-box-2">
+              <div class="box b-amber">
+                <ol>
+                  <li>LOS sets Application Status → <strong>Onboarding Broker</strong>.</li>
+                  <li>Automatic deal allocation is skipped.</li>
+                  <li>Onboarding Team reviews Broker <strong>Status</strong> and/or assigns <strong>Sales Region</strong>.</li>
+                  <li>Once relationship is Active and Sales Region is assigned, future deals from this Broker will be automatically allocated to Underwriter.</li>
+                  <li>Onboarding Team moves application milestone to <strong>Received</strong>.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-ob">Onboarding Team</span>
+                <span class="pill p-uc">BRK-02</span>
+                <span class="pill p-fr">FR-07</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- HAPPY PATH: Active + Sales Region confirmed -->
+          <div class="branch-main">
+            <div class="vline"></div>
+            <div class="blabel blabel-green">Broker Status is Active AND Sales Region assigned</div>
+            <div class="col">
+
+              <!-- Step 2 -->
+              <div style="width:100%">
+                <div class="box b-green">
+                  <ol>
+                    <li>LOS sets Application Status → <strong>Received</strong>.</li>
+                    <li>LOS selects Underwriting Team assigned to same Sales Region as Broker.</li>
+                    <li>Once Team is identified, LOS checks if any Underwriter on that team is available.</li>
+                  </ol>
+                </div>
+                <div class="pills">
+                  <span class="pill p-los">LOS</span>
+                  <span class="pill p-fr">FR-07</span>
+                </div>
+              </div>
+
+              <div class="vline"></div>
+
+              <!-- ── DECISION 3: Team configured + member available? ── -->
+              <div class="hline"></div>
+              <div class="split" style="align-items:stretch">
+
+                <!-- FALLBACK: No team or no member -->
+                <div class="branch-fallback3">
+                  <div class="vline"></div>
+                  <div class="blabel blabel-purple">No Team Available OR No Underwriter available</div>
+                  <div style="width:100%" id="amber-box-3">
+                    <div class="box b-purple">
+                      <ol>
+                        <li>Skip automated allocation.</li>
+                        <li>Deal remains in <strong>All Applications</strong> queue.</li>
+                        <li>Deal remains in <strong>Received</strong> status.</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-los">LOS</span>
+                      <span class="pill p-man">Manager</span>
+                      <span class="pill p-fr">FR-07</span>
+                      <span class="pill p-uc">U01</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- HAPPY PATH: Team + member available -->
+                <div class="branch-main">
+                  <div class="vline"></div>
+                  <div class="blabel blabel-green">Team identified AND Underwriter is available</div>
+                  <div class="col">
+
+                    <!-- Auto-allocate -->
+                    <div style="width:100%" id="auto-allocate-box">
+                      <div class="box b-green">
+                        <ol>
+                          <li>LOS auto-allocates deal to the next available Underwriter on the identified Team (round-robin).</li>
+                          <li>LOS sets Application Milestone → <strong>Allocated</strong>.</li>
+                          <li>All users now see the allocated deal via <strong>Team View</strong> for the assigned Underwriter's team</li>
+                        </ol>
+                      </div>
+                      <div class="pills">
+                        <span class="pill p-los">LOS</span>
+                        <span class="pill p-fr">FR-07</span>
+                        <span class="pill p-uc">U02</span>
+                        <span class="pill p-uc">U04</span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div><!-- end decision 3 -->
+
+            </div>
+          </div>
+
+        </div><!-- end decision 2 -->
+
+      </div>
+    </div>
+
+  </div><!-- end decision 1 -->
+<br><br><br>
+  <!-- ── SHARED: Broker onboarding paths converge here ── -->
+  <div style="width:100%;display:flex;flex-direction:column;align-items:left;margin-top:0">
+    <div style="display:flex;align-items:center;width:50%;margin-bottom:4px"; id="converge-purple">
+      <div style="flex:1;height:1px;border-top:2px dashed #9c59b6;margin-right:8px"></div>
+      <span style="font-size:9px;font-weight:700;color:#7b1fa2;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Skip auto-allocation paths converge</span>
+      <div style="flex:1;height:1px;border-top:2px dashed #9c59b6;margin-left:8px"></div>
+    </div><br>
+    <div style="width:50%" id="purple-box">
+      <div class="box b-purple">
+        <ol>
+          <li>Manager monitors <strong>All Applications</strong> view for any new & unassigned deals that are in either <strong>Onboarding Broker</strong> or <strong>Received</strong> status.</li>
+          <li>When a new deal is identified, Manager is able to review and manually assign the application to an Underwriter on the LOS.</li>
+        </ol>
+      </div>
+      <div class="pills">
+        <span class="pill p-man">Manager</span>
+        <span class="pill p-los">LOS</span>
+        <span class="pill p-uc">U01</span>
+      </div>
+    </div>
+  </div>
+<br><br><br>
+  <!-- ── SHARED: All paths converge at Allocation Complete ── -->
+  <div style="width:50%;margin-left:auto;display:flex;flex-direction:column;align-items:center;margin-top:0">
+    <div style="display:flex;align-items:center;width:100%;margin-bottom:4px" id="converge-blue">
+      <div style="flex:1;height:1px;border-top:2px dashed #1976d2;margin-right:8px"></div>
+      <span style="font-size:9px;font-weight:700;color:#1976d2;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Manual &amp; Auto-allocation paths converge</span>
+      <div style="flex:1;height:1px;border-top:2px dashed #1976d2;margin-left:8px"></div>
+    </div>
+    <div class="vline" style="background:#1976d2"></div>
+    <div style="width:100%" id="uw-shared">
+      <div class="box b-blue">
+        <ol>
+          <li>Underwriter sees the allocated deal via <strong>Team View</strong> for their team, or via the <strong>@Me</strong> filter.</li>
+          <li><strong>Quebec-specific:</strong> Underwriter confirms Application Language Preference (FR-01) — set at ingestion from Primary Borrower language. Underwriter may toggle or manually override if required.</li>
+          <li><strong>Quebec-specific:</strong> Deal is visible using the Quebec Region filter (FR-19).</li>
+          <li>Underwriter opens deal and manually updates loan milestone to <strong>In Review</strong>, and begins application review.</li>
+        </ol>
+      </div>
+      <div class="pills">
+        <span class="pill p-uwr">Underwriter</span>
+        <span class="pill p-los">LOS</span>
+        <span class="pill p-fr">FR-01</span>
+        <span class="pill p-fr">FR-19</span>
+        <span class="pill p-uc">UWR-01</span>
+      </div>
+    </div>
+    <div class="vline" style="background:#1976d2"></div>
+    <div style="width:100%" id="alloc-complete">
+      <div class="box b-blue">
+        <p>→ Allocation complete. Proceed to <strong>Tree C1: Underwriter Review &amp; Decisioning</strong>.</p>
+      </div>
+      <div class="pills">
+        <span class="pill p-uwr">Underwriter Review</span>
+        <span class="pill p-uc">UWR-01</span>
+        <span class="pill p-uc">UWR-02</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual allocation note -->
+  <div style="width:100%;margin-top:20px">
+    <div class="note">
+      <strong>Manual Allocation — All Amber Paths:</strong> In all cases where automated allocation is skipped, the deal surfaces in the <strong>All Applications</strong> queue. A Manager assigns the deal to a Quebec bilingual Underwriter. The Manager can use the Region (Quebec) and Language filters to identify unallocated Quebec deals (FR-19). Once assigned, the user sets the application status and milestone manually.
+    </div>
+  </div>
+
+  <!-- REQUIREMENTS TABLE -->
+  <div style="width:100%;margin-top:28px">
+    <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+    <table style="width:100%;font-size:11px;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #ddd">
+      <thead>
+        <tr style="background:#1e1e2e;color:#9FE1CB">
+          <th style="padding:8px 10px;text-align:left;font-size:10px">Req ID</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px">Type</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px">Summary</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px">Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:7px 10px"><span class="pill p-fr">FR-07</span></td>
+          <td style="padding:7px 10px">Functional</td>
+          <td style="padding:7px 10px">Quebec deals must be automatically allocated to a user on the Quebec bilingual Underwriting team. Quebec brokers must have separate Sales Regions assigned to enable correct team routing.</td>
+          <td style="padding:7px 10px">Must Have</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;background:#fafafa">
+          <td style="padding:7px 10px"><span class="pill p-fr">FR-01</span></td>
+          <td style="padding:7px 10px">Functional</td>
+          <td style="padding:7px 10px">Application Language Preference (set at ingestion from Primary Borrower language) is confirmed and available for Underwriter review at point of allocation. Underwriter may toggle or override if needed.</td>
+          <td style="padding:7px 10px">Must Have</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:7px 10px"><span class="pill p-fr">FR-08</span></td>
+          <td style="padding:7px 10px">Functional</td>
+          <td style="padding:7px 10px">Broker Portal &amp; Kapti must support bilingual French/English display. Broker language preference captured at onboarding and stored in Salesforce.</td>
+          <td style="padding:7px 10px">Must Have</td>
+        </tr>
+        <tr>
+          <td style="padding:7px 10px"><span class="pill p-fr">FR-19</span></td>
+          <td style="padding:7px 10px">Functional</td>
+          <td style="padding:7px 10px">LOS must support filtering of applications by Region (Quebec vs. rest-of-Canada) and Language (French vs. English), enabling managers to identify and manually allocate unassigned Quebec deals.</td>
+          <td style="padding:7px 10px">Could Have</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Key Assumptions -->
+  <div style="width:100%;margin-top:16px">
+    <div class="section-label">Key Assumptions (AS)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <div class="note" style="flex:1;min-width:260px"><strong>AS-03:</strong> All client and broker communication defaults to French unless an English preference is explicitly stated. Onboarding Team contacts unregistered Quebec brokers in French first.</div>
+      <div class="note" style="flex:1;min-width:260px"><strong>AS-08:</strong> Quebec broker onboarding is identical to rest-of-Canada except: outreach in French first, AMF licence number captured in Salesforce, and broker assigned to a Quebec Sales Region.</div>
+      <div class="note" style="flex:1;min-width:260px"><strong>Q-23 (Resolved):</strong> All Quebec deals enter the allocation queue for team review — including non-Tier-1 property deals and BFS clients. No special filtering or auto-decline applies at the allocation stage.</div>
+    </div>
+  </div>
+
+</div><!-- end col -->
+</div><!-- end wrap -->
+<!-- SVG connector overlay -->
+<svg id="connector-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:10" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<script>
+function drawConnectors() {
+  const svg = document.getElementById('connector-svg');
+  svg.innerHTML = '';
+
+  const sX = window.scrollX;
+  const sY = window.scrollY;
+
+  function rect(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return {
+      cx:    r.left + r.width  / 2 + sX,
+      top:   r.top  + sY,
+      bot:   r.bottom + sY,
+      left:  r.left  + sX,
+      right: r.right + sX,
+    };
+  }
+
+  function makePath(d, colour) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', colour);
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-dasharray', '6 3');
+    svg.appendChild(path);
+  }
+
+  // ── Purple: amber boxes → converge-purple label ──
+  const cp = rect('converge-purple');
+  if (cp) {
+    const tgtX = cp.cx;
+    const tgtY = cp.top + (cp.bot - cp.top) / 2 - 10;
+    ['amber-box-1','amber-box-2','amber-box-3'].forEach(id => {
+      const src = rect(id);
+      if (!src) return;
+      const midY = src.bot + (tgtY - src.bot) * 0.5;
+      makePath(
+        `M ${src.cx} ${src.bot} C ${src.cx} ${midY}, ${tgtX} ${midY}, ${tgtX} ${tgtY}`,
+        '#9c59b6'
+      );
+    });
+  }
+
+  // ── Blue: purple-box and auto-allocate-box → converge-blue label ──
+  const cb = rect('converge-blue');
+  if (cb) {
+    const tgtX = cb.cx;
+    const tgtY = cb.top + (cb.bot - cb.top) / 2 - 10;
+
+    // purple-box (manual, left side) → curve to converge-blue centre
+    const pb = rect('purple-box');
+    if (pb) {
+      const midY = pb.bot + (tgtY - pb.bot) * 0.5;
+      makePath(
+        `M ${pb.cx} ${pb.bot} C ${pb.cx} ${midY}, ${tgtX} ${midY}, ${tgtX} ${tgtY}`,
+        '#1976d2'
+      );
+    }
+
+    // auto-allocate-box → converge-blue: direct path straight down
+    const aa = rect('auto-allocate-box');
+    if (aa) {
+      const srcX = aa.cx;
+      const srcY = aa.bot;
+      const midY = srcY + (tgtY - srcY) * 0.5;
+      makePath(
+        `M ${srcX} ${srcY} C ${srcX} ${midY}, ${tgtX} ${midY}, ${tgtX} ${tgtY}`,
+        '#1976d2'
+      );
+    }
+  }
+}
+
+window.addEventListener('load', () => { drawConnectors(); setTimeout(drawConnectors, 200); });
+window.addEventListener('resize', drawConnectors);
+</script>
+</body>
+</html>

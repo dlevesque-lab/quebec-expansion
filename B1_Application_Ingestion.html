@@ -32,26 +32,29 @@ body{background:#f5f5f5;padding:24px 0 60px}
 .b-amber{background:#fff8e1;border:2px solid #f9a825}.b-amber ol{color:#3e2000}.b-amber p{color:#3e2000}
 .b-blue{background:#e3f2fd;border:2px solid #1976d2}.b-blue ol{color:#0d2a4a}.b-blue p{color:#0d2a4a}
 .b-red{background:#fdecea;border:2px solid #d32f2f}.b-red p{color:#7f0000;font-weight:600;font-size:12px}
-.b-teal{background:#e0f2f1;border:2px solid #00796b}.b-teal ol{color:#002e28}.b-teal p{color:#002e28}
+.b-yellow{background:#faf7b9;border:2px solid #c2bf06}.b-teal ol{color:#002e28}.b-teal p{color:#002e28}
+.b-purple{background:rgb(244, 226, 252);border:2px solid #9029d4}.b-teal ol{color:#002e28}.b-teal p{color:#002e28}
 
 /* Pills */
 .pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:8px;width:100%}
 .pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap}
 .p-sys{background:#e8eaf6;color:#1a237e}
-.p-bis{background:#fff9c4;color:#5d4037}
+.p-brk{background:#fac4ff;color:#5d3755}
 .p-los{background:#c8e6c9;color:#1b5e20}
-.p-brk{background:#ffe0b2;color:#bf360c}
+.p-bis{background:#ffe0b2;color:#bf360c}
 .p-fr{background:#f8bbd0;color:#880e4f}
 .p-nfr{background:#d7ccc8;color:#3e2723}
 .p-uc{background:#e0f7fa;color:#006064}
 .p-slack{background:#fce4ec;color:#880e4f}
-.p-sf{background:#e8f5e9;color:#1b5e20}
+.p-sf{background:rgb(244, 226, 252);color:#9029d4}
 
 /* Branch labels */
 .blabel{font-size:10px;font-weight:700;margin-bottom:6px;text-align:center;padding:2px 6px;border-radius:4px}
 .blabel-red{color:#b71c1c;background:#fdecea}
 .blabel-green{color:#1b5e20;background:#d4edda}
 .blabel-amber{color:#e65100;background:#fff8e1}
+.blabel-yellow{color:#7c6a01;background:#f7f5cf}
+.blabel-purple{color:#9029d4;background:rgb(244, 226, 252)}
 
 /* Split layout */
 .split{display:flex;align-items:flex-start;justify-content:center;width:100%;gap:16px}
@@ -95,7 +98,6 @@ body{background:#f5f5f5;padding:24px 0 60px}
     <div class="box b-dark"><p>Mortgage Broker completes and submits a Quebec mortgage application via BOSS POS platform.</p></div>
     <div class="pills">
       <span class="pill p-brk">Mortgage Broker</span>
-      <span class="pill p-sys">BOSS POS (M3)</span>
       <span class="pill p-uc">BRK-01</span>
       <span class="pill p-fr">FR-08</span>
     </div>
@@ -115,7 +117,7 @@ body{background:#f5f5f5;padding:24px 0 60px}
     </div>
     <div class="pills">
       <span class="pill p-bis">BIS</span>
-      <span class="pill p-sys">BOSS POS API</span>
+            <span class="pill p-brk">Broker POS</span>
     </div>
   </div>
 
@@ -189,16 +191,16 @@ body{background:#f5f5f5;padding:24px 0 60px}
                     <!-- Other  Province -->
           <div class="branch">
             <div class="vline"></div>
-            <div class="blabel blabel-amber">Subject Property Province NOT Quebec</div>
+            <div class="blabel blabel-yellow">Subject Property Province NOT Quebec</div>
             <div style="width:100%">
-               <div class="box b-amber">
+               <div class="box b-yellow">
                   <ol><li>Application data onboarded.
                   </li>
                   <li>Follow standard non-Quebec deal flow.
                   </li>
                 </ol>
                 </div>              <div class="pills">
-                <span class="pill p-los">LOS</span>
+                <span class="pill p-los">LOS alt path (non-Quebec)</span>
               </div>
             </div>
             <div class="vline" style="flex:1;min-height:20px"></div>
@@ -230,7 +232,7 @@ body{background:#f5f5f5;padding:24px 0 60px}
 
               <!-- Salesforce push -->
               <div style="width:100%">
-                <div class="box b-teal">
+                <div class="box b-purple">
                   <ol>
                     <li>Application data pushed to Salesforce CRM.</li>
                     <li>Loan appears in Broker Portal.</li>
@@ -263,8 +265,8 @@ body{background:#f5f5f5;padding:24px 0 60px}
 
               <!-- Terminal: continue to Deal Allocation -->
               <div style="width:100%">
-                <div class="box b-blue">
-                  <p>→ Ingestion complete. Proceed to <strong>Tree B2: Deal Allocation Process</strong>.</p>
+                <div class="box b-green">
+                  <p>→ Ingestion complete. Proceed to <strong><a href="B2_Deal_Allocation_Underwriter.html">Tree B2: Deal Allocation Process</a></strong>.</p>
                 </div>
                 <div class="pills">
                   <span class="pill p-los">LOS Deal Allocation Process</span>
