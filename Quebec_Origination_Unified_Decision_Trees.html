@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quebec Expansion — Unified Decision Trees (B1 · B2 · B3 · B4 · U1)</title>
+<style>
+/* ============================================================
+   UNIFIED STYLESHEET — shared across all five flows
+   (B1 / B2 / B3 / B4 / U1)
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html,body{scroll-behavior:smooth}
+body{
+  background:#ececed;
+  font-family:sans-serif;
+  /* The body is the single scroll surface:
+     - vertical scroll moves every tree together (in sync)
+     - horizontal scroll navigates between trees            */
+  overflow:auto;
+}
+
+/* ---- Horizontal track that holds the side panel + all trees ---- */
+.track{
+  display:flex;
+  align-items:stretch;          /* all columns stretch to the tallest tree */
+  gap:56px;                     /* breathing room between the side panel and each tree */
+  padding:24px 0 60px;
+  width:max-content;            /* let the row grow wider than the viewport */
+  min-width:100%;
+}
+
+/* ============================================================
+   LEFT PANEL — Doc info / Author / Status, then Legend.
+   Frozen to the left edge (sticky) and pinned to the top so the
+   single unified legend stays visible across every flow.
+   ============================================================ */
+.side-panel{
+  position:sticky;
+  left:0;
+  z-index:20;
+  flex:0 0 300px;
+  width:300px;
+  background:#f5f5f5;
+  border-right:1px solid #cfcfcf;
+  box-shadow:6px 0 14px -8px rgba(0,0,0,.35);
+}
+.side-inner{
+  position:sticky;
+  top:0;
+  padding:20px 16px 24px;
+  max-height:100vh;
+  overflow-y:auto;
+}
+
+/* Document information block */
+.doc-info{background:#1e1e2e;border-radius:8px;padding:14px 14px 16px;margin-bottom:16px}
+.doc-info .eyebrow{color:#9FE1CB;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.doc-info h1{color:#fff;font-size:15px;line-height:1.4;margin:6px 0 10px;font-weight:700}
+.doc-info .meta{color:#cfd2e6;font-size:11px;line-height:1.7}
+.doc-info .meta a{color:#9FE1CB}
+.doc-info .meta strong{color:#fff}
+.doc-info .status{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;letter-spacing:.04em;background:#3a3a52;color:#ffd479;padding:3px 8px;border-radius:10px}
+
+/* Flow index */
+.flow-index{background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px 12px;margin-bottom:16px}
+.flow-index .legend-title{display:block;font-size:10px;font-weight:700;color:#555;letter-spacing:.06em;margin-bottom:8px;text-transform:uppercase}
+.flow-index a{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px;line-height:1.45;color:#1e1e2e;text-decoration:none;padding:8px 10px;border-radius:6px;border:1px solid #e6e6e6;margin-bottom:7px;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s,transform .05s}
+.flow-index a:last-child{margin-bottom:0}
+.flow-index a:hover{background:#f0f7f3;border-color:#9FE1CB}
+.flow-index a:active{transform:translateY(1px)}
+.flow-index a.active{background:#eef7f1;border-color:#17580a;box-shadow:inset 3px 0 0 #17580a}
+.flow-index a b{color:#17580a}
+.flow-index a .chev{color:#17580a;font-size:14px;font-weight:700;flex-shrink:0;line-height:1}
+
+/* Legend block */
+.legend-block{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:14px}
+.legend-block .legend-title{display:block;font-size:10px;font-weight:700;color:#555;letter-spacing:.06em;margin-bottom:8px;text-transform:uppercase}
+.legend-block .legend-group{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.legend-block .legend-group:last-child{margin-bottom:0}
+.legend-block .legend-sub{display:block;font-size:9px;font-weight:700;color:#999;letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase}
+.legend-swatch{display:flex;align-items:center;gap:7px;font-size:10.5px;color:#333;width:100%;margin-bottom:5px}
+.legend-swatch .chip{width:22px;height:14px;border-radius:3px;flex-shrink:0;border:1px solid rgba(0,0,0,.12)}
+
+/* ============================================================
+   TREE COLUMN — one per flow, fixed width, scrolls horizontally
+   ============================================================ */
+.tree{
+  position:relative;            /* anchor for the per-tree SVG overlay */
+  flex:0 0 1000px;
+  width:1000px;
+  padding:0 20px;
+  scroll-margin-left:360px;     /* keep tree clear of the frozen left panel on jump */
+  scroll-margin-top:16px;
+}
+/* Divider line between adjacent trees — appears before B2 and before B3,
+   not before B1 (which follows the side panel). Spans the full row height. */
+.tree + .tree{
+  border-left:2px dashed #b6b6bd;
+  padding-left:36px;
+}
+.tree-head{
+  background:#fff;border:1px solid #ddd;border-left:5px solid #17580a;
+  border-radius:8px;padding:10px 14px;margin:0 auto 18px;max-width:960px;
+}
+.tree-head .tag{font-size:10px;font-weight:700;letter-spacing:.08em;color:#17580a;text-transform:uppercase}
+.tree-head .name{font-size:14px;color:#1a1a1a;line-height:1.5;margin-top:3px;display:block}
+
+/* Core layout primitives (shared) */
+.col{display:flex;flex-direction:column;align-items:center;width:100%;max-width:960px;margin:0 auto}
+.vline{width:2px;background:#888;height:24px;flex-shrink:0}
+.hline{width:100%;height:2px;background:#888}
+
+/* ---- Boxes (single definition each, shared by all flows) ----
+   b-trigger = entry point (solid blue)
+   b-green   = happy path — MINIMUM work / full automation
+   b-teal    = happy path — requires some additional work or
+               intervention, but the user still completes their
+               desired action
+   b-amber   = manual / alternative step  b-red = error / failure
+   b-purple  = terminal / final step                                  */
+.box{border-radius:8px;padding:12px 14px;width:100%}
+.box ol{font-size:12px;line-height:1.8;padding-left:16px;margin:0}
+.box p{font-size:12px;line-height:1.6;margin:0;text-align:center}
+.b-trigger{background:#1565c0;border:2px solid #0d47a1}
+.b-trigger p{color:#fff;font-weight:600;font-size:13px}
+.b-trigger a{color:#fff}
+.b-green{background:#d4edda;border:2px solid #5cb85c}
+.b-green ol{color:#1a3c1a}.b-green p{color:#1a3c1a}
+.b-teal{background:#e0f2f1;border:2px solid #00897b}
+.b-teal ol{color:#004d40}.b-teal p{color:#004d40}
+.b-amber{background:#fff8e1;border:2px solid #f9a825}
+.b-amber ol{color:#3e2000}.b-amber p{color:#3e2000}
+.b-red{background:#fdecea;border:2px solid #d32f2f}
+.b-red ol{color:#7f0000}.b-red p{color:#7f0000;font-weight:600;font-size:12px}
+.b-purple{background:#ede7f6;border:2px solid #673ab7}
+.b-purple ol{color:#311b92}.b-purple p{color:#311b92;font-weight:600}
+
+/* ---- Pills (single definition each, shared by all flows) ---- */
+.pills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-top:3px;width:100%}
+.pill{font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;white-space:nowrap}
+.p-sys{background:#e8eaf6;color:#1a237e}      /* System */
+.p-bis{background:#ffe0b2;color:#bf360c}      /* BIS */
+.p-los{background:#c8e6c9;color:#1b5e20}      /* LOS */
+.p-brk{background:#fac4ff;color:#5d3755}      /* Broker / Broker POS */
+.p-bp{background:#b3e5fc;color:#01579b}       /* Broker Portal */
+.p-sf{background:#e1bee7;color:#6a1b9a}       /* Salesforce */
+.p-uwr{background:#bbdefb;color:#0d47a1}      /* Underwriter */
+.p-man{background:#d1c4e9;color:#4527a0}      /* Manager */
+.p-ob{background:#efebe9;color:#5d4037}       /* Onboarding Team / Lender Contact */
+.p-ka{background:#fff3e0;color:#bf360c}       /* Kapti */
+.p-fr{background:#f8bbd0;color:#880e4f}       /* Functional Req */
+.p-nfr{background:#d7ccc8;color:#3e2723}      /* Non-Functional Req */
+.p-uc{background:#e0f7fa;color:#006064}       /* Use Case */
+.p-slack{background:#fce4ec;color:#c2185b}    /* Slack Alert */
+
+/* ---- Branch labels (shared) ---- */
+.blabel{font-size:10px;font-weight:700;margin-bottom:6px;text-align:center;padding:2px 6px;border-radius:4px}
+.blabel-green{color:#1b5e20;background:#d4edda}
+.blabel-teal{color:#00695c;background:#b2dfdb}
+.blabel-amber{color:#e65100;background:#fff8e1}
+.blabel-red{color:#b71c1c;background:#fdecea}
+.blabel-yellow{color:#7c6a01;background:#f7f5cf}
+.blabel-purple{color:#520da1;background:#e7d0fd}
+
+/* ---- Split / branch layout (shared, all variants) ---- */
+.split{display:flex;align-items:flex-start;justify-content:center;width:100%;gap:16px}
+.branch{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+.branch-main{display:flex;flex-direction:column;align-items:center;flex:2;min-width:0}
+.branch-equal{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+.branch-fallback{display:flex;flex-direction:column;align-items:center;flex:none;width:28%}
+.branch-fallback1{display:flex;flex-direction:column;align-items:center;flex:none;width:29%}
+.branch-fallback2{display:flex;flex-direction:column;align-items:center;flex:none;width:33%}
+.branch-fallback3{display:flex;flex-direction:column;align-items:center;flex:none;width:40%}
+
+/* ---- Section header / note / tables (shared) ---- */
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#666;border-top:1px dashed #ccc;padding-top:10px;margin:4px 0 8px;width:100%;text-align:center}
+.note{background:#fffde7;border-left:3px solid #f9a825;border-radius:4px;padding:8px 10px;font-size:11px;color:#5d4037;width:100%;margin-top:6px}
+.note strong{color:#e65100}
+.req-table{width:100%;font-size:11px;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #ddd}
+.req-table thead tr{background:#1e1e2e;color:#9FE1CB}
+.req-table th{padding:8px 10px;text-align:left;font-size:10px}
+.req-table td{padding:7px 10px}
+.req-table tbody tr{border-bottom:1px solid #eee}
+.req-table tbody tr:nth-child(even){background:#fafafa}
+
+/* Per-tree SVG connector overlay */
+.tree-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
+</style>
+</head>
+<body>
+<div class="track">
+
+  <!-- ============================================================
+       LEFT PANEL : Doc info / Author / Status  →  Legend
+       ============================================================ -->
+  <aside class="side-panel">
+    <div class="side-inner">
+
+      <div class="doc-info">
+        <span class="eyebrow">Business Requirements</span>
+        <h1>Quebec Alt-A Mortgage Expansion — Onboarding &amp; Allocation Decision Trees</h1>
+        <div class="meta">
+          Author: <a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD">Dan Levesque</a><br>
+          Version: <strong>v1.0 Draft</strong><br>
+          Scope: Broker POS submission → LOS onboarding → Deal allocation → Broker Portal access → Portal language &amp; deal access → Application language
+          <br><span class="status">Status: Draft for Review</span>
+        </div>
+      </div>
+
+      <nav class="flow-index">
+        <span class="legend-title">Flows in this document</span>
+        <a href="#treeB1"><span class="lbl"><b>B1</b> · Application Ingestion<br>Broker POS Submission → LOS Onboarding</span><span class="chev">›</span></a>
+        <a href="#treeB2"><span class="lbl"><b>B2</b> · Deal Allocation<br>LOS Onboarding → Underwriter Assignment</span><span class="chev">›</span></a>
+        <a href="#treeB3"><span class="lbl"><b>B3</b> · Broker Portal Login &amp; Access<br>Credential Check → Reset → Portal Access</span><span class="chev">›</span></a>
+        <a href="#treeB4"><span class="lbl"><b>B4</b> · Broker Portal Language &amp; Deal Access<br>UI Language → Deal Language → Kapti Upload → Messaging</span><span class="chev">›</span></a>
+        <a href="#treeU1"><span class="lbl"><b>U1</b> · Application Language<br>LOS Auto-Set → Underwriter Override &amp; Clear</span><span class="chev">›</span></a>
+      </nav>
+
+      <div class="legend-block">
+        <span class="legend-title">Legend (applies to all flows)</span>
+
+        <span class="legend-sub">Systems &amp; Actors</span>
+        <div class="legend-group" style="flex-direction:column;align-items:flex-start">
+          <span class="legend-swatch"><span class="chip" style="background:#ffe0b2"></span>BIS — Broker Integration Service</span>
+          <span class="legend-swatch"><span class="chip" style="background:#c8e6c9"></span>LOS — Loan Origination System</span>
+          <span class="legend-swatch"><span class="chip" style="background:#fac4ff"></span>Broker / Broker POS</span>
+          <span class="legend-swatch"><span class="chip" style="background:#b3e5fc"></span>Broker Portal</span>
+          <span class="legend-swatch"><span class="chip" style="background:#e1bee7"></span>Salesforce CRM</span>
+          <span class="legend-swatch"><span class="chip" style="background:#bbdefb"></span>Underwriter</span>
+          <span class="legend-swatch"><span class="chip" style="background:#d1c4e9"></span>Manager</span>
+          <span class="legend-swatch"><span class="chip" style="background:#efebe9"></span>Onboarding Team / Lender Contact</span>
+          <span class="legend-swatch"><span class="chip" style="background:#fff3e0"></span>Kapti — Document Upload</span>
+        </div>
+
+        <span class="legend-sub">Requirement &amp; Alert Tags</span>
+        <div class="legend-group" style="flex-direction:column;align-items:flex-start">
+          <span class="legend-swatch"><span class="chip" style="background:#f8bbd0"></span>FR-XX — Functional Requirement</span>
+          <span class="legend-swatch"><span class="chip" style="background:#d7ccc8"></span>NFR-XX — Non-Functional Requirement</span>
+          <span class="legend-swatch"><span class="chip" style="background:#e0f7fa"></span>UC-XX — Use Case</span>
+          <span class="legend-swatch"><span class="chip" style="background:#fce4ec"></span>⚠ Slack Alert</span>
+        </div>
+
+        <span class="legend-sub">Box / Step Types</span>
+        <div class="legend-group" style="flex-direction:column;align-items:flex-start">
+          <span class="legend-swatch"><span class="chip" style="background:#1565c0;border-color:#0d47a1"></span>Trigger / entry point</span>
+          <span class="legend-swatch"><span class="chip" style="background:#d4edda;border-color:#5cb85c"></span>Happy path — minimum work / full automation</span>
+          <span class="legend-swatch"><span class="chip" style="background:#e0f2f1;border-color:#00897b"></span>Happy path — additional work / intervention required; user still completes their desired action</span>
+          <span class="legend-swatch"><span class="chip" style="background:#fff8e1;border-color:#f9a825"></span>Manual intervention / alternative process step</span>
+          <span class="legend-swatch"><span class="chip" style="background:#fdecea;border-color:#d32f2f"></span>Error / failure step</span>
+          <span class="legend-swatch"><span class="chip" style="background:#ede7f6;border-color:#673ab7"></span>Terminal / final step</span>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:0">Scroll <strong>down</strong> to follow each flow; all trees scroll together. Scroll <strong>right</strong> to move from B1 → B2 → B3 → B4 → U1.</div>
+
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       TREE B1 — Quebec Application Ingestion
+       ============================================================ -->
+  <section class="tree" id="treeB1">
+    <svg class="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tree-head">
+      <span class="tag">Tree B1 · Quebec Application Ingestion Flow</span>
+      <span class="name">Broker POS Submission → LOS Onboarding</span>
+    </div>
+
+    <div class="col">
+
+      <!-- TRIGGER -->
+      <div style="width:400px">
+        <div class="box b-trigger"><p>→ Mortgage Broker completes and submits a mortgage application via BOSS POS platform.</p></div>
+        <div class="pills">
+          <span class="pill p-brk">Mortgage Broker</span>
+          <span class="pill p-uc">BRK-01</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- STEP 1: BIS polling -->
+      <div style="width:100%">
+        <div class="box b-green">
+          <ol>
+            <li>BIS polls BOSS POS at regular intervals to check for available deals.</li>
+            <li>BIS determines that a new deal is available for retrieval.</li>
+            <li>BIS makes an API call to BOSS POS to pull the deal payload (XML or JSON).</li>
+            <li>BIS stores the raw Broker POS payload in the BIS data store.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-bis">BIS</span>
+          <span class="pill p-brk">Broker POS</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- STEP 2: BIS Transform -->
+      <div style="width:100%">
+        <div class="box b-green">
+          <ol>
+            <li>BIS transforms the raw Broker POS payload into the LOS schema format.</li>
+            <li><strong>Quebec-specific:</strong> French-accented characters in borrower names, addresses, and property fields must be preserved through transformation (NFR-13). French street types are pre-mapped in LOS.</li>
+            <li><strong>Quebec-specific:</strong> BIS parses French-language credit bureau if submitted in French (NFR-02). Parsing output validated against English equivalent.</li>
+            <li><strong>Note:</strong> BOSS POS schema is identical for Quebec and rest-of-Canada regardless of language setting (AS-04). English schema is always used.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-bis">BIS</span>
+          <span class="pill p-nfr">NFR-02</span>
+          <span class="pill p-nfr">NFR-13</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+      <div class="hline"></div>
+
+      <!-- SPLIT: Transformation Success / Failure -->
+      <div class="split" style="align-items:stretch">
+
+        <!-- PATH A: Transformation SUCCESS -->
+        <div class="branch">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">Transformation successful</div>
+          <div class="col">
+
+            <!-- BIS stores & publishes -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>BIS stores the transformed deal in the BIS transformed deal store.</li>
+                  <li>BIS publishes a Pub/Sub message indicating the deal is received and ready to ingest.</li>
+                </ol>
+              </div>
+              <div class="pills"><span class="pill p-bis">BIS</span></div>
+            </div>
+
+            <div class="vline"></div>
+
+            <!-- LOS Ingest -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>LOS listens for the Pub/Sub notification and determines when to ingest the deal.</li>
+                  <li>LOS makes an API call to BIS to pull the transformed deal.</li>
+                  <li>LOS onboards the deal and populates application data fields.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-los">LOS</span>
+                <span class="pill p-fr">FR-01</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+            <div class="hline"></div>
+
+            <!-- SPLIT: Province supported / not supported -->
+            <div class="split" style="align-items:stretch">
+
+              <!-- Other Province -->
+              <div class="branch">
+                <div class="vline"></div>
+                <div class="blabel blabel-amber">Subject Property Province NOT Quebec</div>
+                <div style="width:100%">
+                  <div class="box b-amber">
+                    <ol>
+                      <li>Application data onboarded.</li>
+                      <li>Follow standard non-Quebec deal flow.</li>
+                    </ol>
+                  </div>
+                  <div class="pills">
+                    <span class="pill p-los">LOS non-Quebec path</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quebec Province OK -->
+              <div class="branch">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">Subject Property Province = Quebec (supported)</div>
+                <div class="col">
+
+                  <!-- LOS ingestion confirmed -->
+                  <div style="width:100%">
+                    <div class="box b-green">
+                      <ol>
+                        <li>Application data onboarded.</li>
+                        <li>LOS sets Application Language Preference based on the Primary Borrower's language preference.</li>
+                        <li>LOS applies Quebec Property Tiering rules to assign the appropriate risk tier to the subject property (NFR-15).</li>
+                        <li>LOS validates Quebec as a supported province via Qualification Checks (NFR-07).</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-los">LOS</span>
+                      <span class="pill p-nfr">NFR-07</span>
+                      <span class="pill p-nfr">NFR-15</span>
+                    </div>
+                  </div>
+
+                  <div class="vline"></div>
+
+                  <!-- Salesforce push -->
+                  <div style="width:100%">
+                    <div class="box b-green">
+                      <ol>
+                        <li>Application data pushed to Salesforce CRM.</li>
+                        <li>Loan appears in Broker Portal.</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-sf">Salesforce CRM</span>
+                      <span class="pill p-fr">FR-15</span>
+                    </div>
+                  </div>
+
+                  <div class="vline"></div>
+
+                  <!-- BIS acknowledgement -->
+                  <div style="width:100%">
+                    <div class="box b-green">
+                      <ol>
+                        <li>BIS listens for Application Status Update events from LOS.</li>
+                        <li>BIS sends an acknowledgement message to Broker POS confirming deal receipt.</li>
+                        <li>Broker receives confirmation in BOSS POS.</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-bis">BIS</span>
+                      <span class="pill p-brk">Broker POS</span>
+                    </div>
+                  </div>
+
+                  <div class="vline"></div>
+
+                  <!-- Terminal: continue to Deal Allocation -->
+                  <div style="width:100%">
+                    <div class="box b-purple">
+                      <p>→ <strong>Ingestion complete.</strong> <br>Proceed to <strong>B2: Deal Allocation</strong>.</p>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-los">LOS Deal Allocation Process</span>
+                      <span class="pill p-fr">FR-07</span>
+                      <span class="pill p-uc">UWR-01</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div><!-- end province split -->
+
+          </div>
+        </div><!-- end PATH A -->
+
+        <!-- PATH B: Transformation FAILURE -->
+        <div class="branch" style="max-width:220px">
+          <div class="vline"></div>
+          <div class="blabel blabel-red">Transformation failed</div>
+          <div style="width:100%">
+            <div class="box b-red">
+              <p>⚠ Slack alert sent to BIS team notifying of transformation failure.</p>
+            </div>
+            <div class="pills">
+              <span class="pill p-bis">BIS</span>
+              <span class="pill p-slack">⚠ Slack Alert</span>
+            </div>
+          </div>
+          <div class="vline"></div>
+          <div style="width:100%">
+            <div class="box b-amber">
+              <ol>
+                <li>BIS team investigates and manually fixes the transformation issue.</li>
+                <li>Deal remains in BIS queue; not ingested until transformation succeeds.</li>
+                <li>Once fixed, deal re-enters the transformation pipeline from Step 2.</li>
+              </ol>
+            </div>
+            <div class="pills">
+              <span class="pill p-bis">BIS Team</span>
+            </div>
+          </div>
+          <div class="note"><strong>Note:</strong> If LOS ingestion fails after a successful transformation, a Slack failure notification is sent to the BIS team and the deal remains in the BIS queue for retry.</div>
+        </div>
+
+      </div><!-- end transformation split -->
+
+      <!-- ====== REQUIREMENTS TABLE ====== -->
+      <div style="width:100%;margin-top:28px">
+        <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+        <table class="req-table">
+          <thead>
+            <tr><th>Req ID</th><th>Type</th><th>Summary</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill p-fr">FR-01</span></td>
+              <td>Functional</td>
+              <td>Application-Level Language Preference set at LOS ingestion based on Primary Borrower language; saved to App Intake snapshot and pushed downstream to Salesforce and LMS.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-08</span></td>
+              <td>Functional</td>
+              <td>Broker Portal &amp; Kapti must support bilingual French/English display. Language preference captured at onboarding and stored in Salesforce.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-15</span></td>
+              <td>Functional</td>
+              <td>Salesforce client-facing email communications must respect the borrower's language preference, captured and stored at deal ingestion.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-02</span></td>
+              <td>Non-Functional</td>
+              <td>LOS/BIS must parse French-language credit bureaus submitted by Quebec brokers. Initial testing via BOSS shows mostly French parsing works; full validation required.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-07</span></td>
+              <td>Non-Functional</td>
+              <td>LOS Qualification Checks must allow Quebec as a supported province. Minimum Lending Value and Subject Property Province checks to be adjusted. No net-new qualification checks.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-13</span></td>
+              <td>Non-Functional</td>
+              <td>All systems (LOS, Broker Portal, Salesforce, DMS) must accept and correctly handle French-accented text (e.g., é, à, ê, ç) in all free-form fields through the ingestion pipeline.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-15</span></td>
+              <td>Non-Functional</td>
+              <td>LOS must automatically calculate Property Tier for Quebec properties at ingestion to assign the appropriate risk score and pricing to the loan.</td>
+              <td>Must Have</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Assumptions -->
+      <div style="width:100%;margin-top:16px">
+        <div class="section-label">Key Assumptions (AS)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-03:</strong> All client and broker communication defaults to French unless an English preference is explicitly stated.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-04:</strong> BOSS POS submission schema is identical for Quebec and rest-of-Canada regardless of language setting. Confirmed by M3. French street types are pre-mapped in LOS.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-08:</strong> Broker onboarding remains identical to rest-of-Canada except: outreach in French first, AMF licence number captured, Quebec Sales Region assigned.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-15:</strong> When multiple borrowers have differing language preferences, the Primary Borrower's language preference governs the application language.</div>
+        </div>
+      </div>
+
+    </div><!-- end col -->
+  </section>
+
+  <!-- ============================================================
+       TREE B2 — Quebec Deal Allocation to Underwriter
+       ============================================================ -->
+  <section class="tree" id="treeB2">
+    <svg class="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tree-head">
+      <span class="tag">Tree B2 · Quebec Deal Allocation Flow</span>
+      <span class="name">LOS Onboarding → Underwriter Assignment</span>
+    </div>
+
+    <div class="col">
+
+      <!-- TRIGGER -->
+      <div style="width:440px">
+        <div class="box b-trigger"><p>→ from <a href="#treeB1" style="color:white">Tree B1</a>: Deal successfully ingested and onboarded in LOS<br>LOS triggers the Deal Allocation process.</p></div>
+        <div class="pills">
+          <span class="pill p-los">LOS</span>
+          <span class="pill p-uc">BRK-01</span>
+          <span class="pill p-fr">FR-07</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- STEP: Province confirmation -->
+      <div style="width:100%">
+        <div class="blabel blabel-green" style="width:50%;margin:0 auto 5px;text-align:center">Subject Property Province = Quebec</div>
+        <div class="box b-green">
+          <ol>
+            <li>LOS checks whether a Broker profile with the same Profile ID exists in the system.</li>
+            <li>LOS simultaneously checks whether a Brokerage with the same Firm Code exists in the system.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-los">LOS</span>
+          <span class="pill p-fr">FR-07</span>
+          <span class="pill p-uc">UWR-01</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- ── DECISION 1: Broker / Brokerage in system? ── -->
+      <div class="hline"></div>
+      <div class="split" style="align-items:stretch">
+
+        <!-- FALLBACK: Broker not found -->
+        <div class="branch-fallback1">
+          <div class="vline"></div>
+          <div class="blabel blabel-amber">EITHER Broker or Brokerage NOT found</div>
+          <div style="width:100%" id="amber-box-1">
+            <div class="box b-amber">
+              <ol>
+                <li>LOS sets Application Status → <strong>Onboarding Broker</strong>.</li>
+                <li>Automatic deal allocation is skipped.</li>
+                <li>If Broker or Brokerage are already known, they are auto-associated to loan on LOS. Otherwise association is left blank.</li>
+                <li>Onboarding Team notified to complete broker onboarding.</li>
+                <li>Onboarding Team contacts broker to begin onboarding process. AMF licence number captured and verified.</li>
+                <li>When onboarding is complete, Broker is assigned to Quebec Sales Region and set to <strong>Active</strong>.</li>
+                <li>Once Broker and/or Brokerage are created in the system, Onboarding Team manually associates them to the loan on the LOS.</li>
+                <li>Onboarding Team moves application milestone to <strong>Received</strong>.</li>
+              </ol>
+            </div>
+            <div class="pills">
+              <span class="pill p-ob">Onboarding Team</span>
+              <span class="pill p-sf">Salesforce</span>
+              <span class="pill p-uc">BRK-02</span>
+              <span class="pill p-fr">FR-08</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HAPPY PATH: Broker found -->
+        <div class="branch-main">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">BOTH Broker &amp; Brokerage already exist in system</div>
+          <div class="col">
+
+            <!-- Step 1 -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>Broker is associated to the application.</li>
+                  <li>Brokerage is associated to the application.</li>
+                  <li>LOS checks: is the Broker–Brokerage relationship status <strong>Active</strong> with an assigned sales region?</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-los">LOS</span>
+                <span class="pill p-fr">FR-07</span>
+                <span class="pill p-uc">UWR-01</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+
+            <!-- ── DECISION 2: Active + Sales Region? ── -->
+            <div class="hline"></div>
+            <div class="split" style="align-items:stretch">
+
+              <!-- FALLBACK: Pending or no Sales Region -->
+              <div class="branch-fallback2">
+                <div class="vline"></div>
+                <div class="blabel blabel-amber">Broker Inactive OR no Sales Region</div>
+                <div style="width:100%" id="amber-box-2">
+                  <div class="box b-amber">
+                    <ol>
+                      <li>LOS sets Application Status → <strong>Onboarding Broker</strong>.</li>
+                      <li>Automatic deal allocation is skipped.</li>
+                      <li>Onboarding Team reviews Broker <strong>Status</strong> and/or assigns <strong>Sales Region</strong>.</li>
+                      <li>Once relationship is Active and Sales Region is assigned, future deals from this Broker will be automatically allocated to Underwriter.</li>
+                      <li>Onboarding Team moves application milestone to <strong>Received</strong>.</li>
+                    </ol>
+                  </div>
+                  <div class="pills">
+                    <span class="pill p-ob">Onboarding Team</span>
+                    <span class="pill p-uc">BRK-02</span>
+                    <span class="pill p-fr">FR-07</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HAPPY PATH: Active + Sales Region confirmed -->
+              <div class="branch-main">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">Broker Status is Active AND Sales Region assigned</div>
+                <div class="col">
+
+                  <!-- Step 2 -->
+                  <div style="width:100%">
+                    <div class="box b-green">
+                      <ol>
+                        <li>LOS sets Application Status → <strong>Received</strong>.</li>
+                        <li>LOS selects Underwriting Team assigned to same Sales Region as Broker.</li>
+                        <li>Once Team is identified, LOS checks if any Underwriter on that team is available.</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-los">LOS</span>
+                      <span class="pill p-fr">FR-07</span>
+                    </div>
+                  </div>
+
+                  <div class="vline"></div>
+
+                  <!-- ── DECISION 3: Team configured + member available? ── -->
+                  <div class="hline"></div>
+                  <div class="split" style="align-items:stretch">
+
+                    <!-- FALLBACK: No team or no member -->
+                    <div class="branch-fallback3">
+                      <div class="vline"></div>
+                      <div class="blabel blabel-purple">No Team Available OR No Underwriter available</div>
+                      <div style="width:100%" id="amber-box-3">
+                        <div class="box b-amber">
+                          <ol>
+                            <li>Skip automated allocation.</li>
+                            <li>Deal remains in <strong>All Applications</strong> queue.</li>
+                            <li>Deal remains in <strong>Received</strong> status.</li>
+                          </ol>
+                        </div>
+                        <div class="pills">
+                          <span class="pill p-los">LOS</span>
+                          <span class="pill p-man">Manager</span>
+                          <span class="pill p-fr">FR-07</span>
+                          <span class="pill p-uc">U01</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- HAPPY PATH: Team + member available -->
+                    <div class="branch-main">
+                      <div class="vline"></div>
+                      <div class="blabel blabel-green">Team identified AND Underwriter is available</div>
+                      <div class="col">
+
+                        <!-- Auto-allocate -->
+                        <div style="width:100%" id="auto-allocate-box">
+                          <div class="box b-green">
+                            <ol>
+                              <li>LOS auto-allocates deal to the next available Underwriter on the identified Team (round-robin).</li>
+                              <li>LOS sets Application Milestone → <strong>Allocated</strong>.</li>
+                              <li>All users now see the allocated deal via <strong>Team View</strong> for the assigned Underwriter's team</li>
+                            </ol>
+                          </div>
+                          <div class="pills">
+                            <span class="pill p-los">LOS</span>
+                            <span class="pill p-fr">FR-07</span>
+                            <span class="pill p-uc">U02</span>
+                            <span class="pill p-uc">U04</span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                  </div><!-- end decision 3 -->
+
+                </div>
+              </div>
+
+            </div><!-- end decision 2 -->
+
+          </div>
+        </div>
+
+      </div><!-- end decision 1 -->
+      <br><br><br>
+      <!-- ── SHARED: Broker onboarding paths converge here ── -->
+      <div style="width:100%;display:flex;flex-direction:column;align-items:flex-start;margin-top:0">
+        <div style="display:flex;align-items:center;width:50%;margin-bottom:4px" id="converge-purple">
+          <div style="flex:1;height:1px;border-top:2px dashed #f9a825;margin-right:8px"></div>
+          <span style="font-size:9px;font-weight:700;color:#e65100;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Skip auto-allocation paths converge</span>
+          <div style="flex:1;height:1px;border-top:2px dashed #f9a825;margin-left:8px"></div>
+        </div>
+        <div style="width:50%" id="purple-box">
+          <div class="box b-teal">
+            <ol>
+              <li>Manager monitors <strong>All Applications</strong> view for any new &amp; unassigned deals that are in either <strong>Onboarding Broker</strong> or <strong>Received</strong> status.</li>
+              <li>When a new deal is identified, Manager is able to review and manually assign the application to an Underwriter on the LOS.</li>
+            </ol>
+          </div>
+          <div class="pills">
+            <span class="pill p-man">Manager</span>
+            <span class="pill p-los">LOS</span>
+            <span class="pill p-uc">U01</span>
+          </div>
+        </div>
+      </div>
+      <br><br><br><br>
+      <!-- ── SHARED: All paths converge at Allocation Complete ── -->
+      <div style="width:50%;margin-left:auto;display:flex;flex-direction:column;align-items:center;margin-top:0">
+        <div style="display:flex;align-items:center;width:100%;margin-bottom:4px" id="converge-blue">
+          <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-right:8px"></div>
+          <span style="font-size:9px;font-weight:700;color:#2e7d32;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Manual &amp; Auto-allocation paths converge</span>
+          <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-left:8px"></div>
+        </div>
+        <div style="width:100%" id="uw-shared">
+          <div class="box b-green">
+            <ol>
+              <li>Underwriter sees the allocated deal via <strong>Team View</strong> for their team, or via the <strong>@Me</strong> filter.</li>
+              <li><strong>Quebec-specific:</strong> Underwriter confirms Application Language Preference (FR-01) — set at ingestion from Primary Borrower language. Underwriter may toggle or manually override if required.</li>
+              <li><strong>Quebec-specific:</strong> Deal is visible using the Quebec Region filter (FR-19).</li>
+              <li>Underwriter opens deal and manually updates loan milestone to <strong>In Review</strong>, and begins application review.</li>
+            </ol>
+          </div>
+          <div class="pills">
+            <span class="pill p-uwr">Underwriter</span>
+            <span class="pill p-los">LOS</span>
+            <span class="pill p-fr">FR-01</span>
+            <span class="pill p-fr">FR-19</span>
+            <span class="pill p-uc">UWR-01</span>
+          </div>
+        </div>
+        <div class="vline"></div>
+        <div style="width:100%" id="alloc-complete">
+          <div class="box b-purple">
+            <p><strong>→ Allocation complete.</strong><br>Underwriter Proceed to <strong>U1: Set Application Language</strong>.<br>Broker Proceed to <strong>B3: Broker Portal Login</strong>.</p>
+          </div>
+          <div class="pills">
+            <span class="pill p-uwr">Underwriter Review</span>
+            <span class="pill p-uc">UWR-01</span>
+            <span class="pill p-uc">UWR-02</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual allocation note -->
+      <div style="width:100%;margin-top:20px">
+        <div class="note">
+          <strong>Manual Allocation — All Amber Paths:</strong> In all cases where automated allocation is skipped, the deal surfaces in the <strong>All Applications</strong> queue. A Manager assigns the deal to a Quebec bilingual Underwriter. The Manager can use the Region (Quebec) and Language filters to identify unallocated Quebec deals (FR-19). Once assigned, the user sets the application status and milestone manually.
+        </div>
+      </div>
+
+      <!-- REQUIREMENTS TABLE -->
+      <div style="width:100%;margin-top:28px">
+        <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+        <table class="req-table">
+          <thead>
+            <tr><th>Req ID</th><th>Type</th><th>Summary</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill p-fr">FR-07</span></td>
+              <td>Functional</td>
+              <td>Quebec deals must be automatically allocated to a user on the Quebec bilingual Underwriting team. Quebec brokers must have separate Sales Regions assigned to enable correct team routing.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-01</span></td>
+              <td>Functional</td>
+              <td>Application Language Preference (set at ingestion from Primary Borrower language) is confirmed and available for Underwriter review at point of allocation. Underwriter may toggle or override if needed.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-08</span></td>
+              <td>Functional</td>
+              <td>Broker Portal &amp; Kapti must support bilingual French/English display. Broker language preference captured at onboarding and stored in Salesforce.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-19</span></td>
+              <td>Functional</td>
+              <td>LOS must support filtering of applications by Region (Quebec vs. rest-of-Canada) and Language (French vs. English), enabling managers to identify and manually allocate unassigned Quebec deals.</td>
+              <td>Could Have</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Assumptions -->
+      <div style="width:100%;margin-top:16px">
+        <div class="section-label">Key Assumptions (AS)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-03:</strong> All client and broker communication defaults to French unless an English preference is explicitly stated. Onboarding Team contacts unregistered Quebec brokers in French first.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-08:</strong> Quebec broker onboarding is identical to rest-of-Canada except: outreach in French first, AMF licence number captured in Salesforce, and broker assigned to a Quebec Sales Region.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>Q-23 (Resolved):</strong> All Quebec deals enter the allocation queue for team review — including non-Tier-1 property deals and BFS clients. No special filtering or auto-decline applies at the allocation stage.</div>
+        </div>
+      </div>
+
+    </div><!-- end col -->
+  </section>
+
+  <!-- ============================================================
+       TREE B3 — Quebec Broker Portal Login & Access
+       ============================================================ -->
+  <section class="tree" id="treeB3">
+    <svg class="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tree-head">
+      <span class="tag">Tree B3 · Quebec Broker Portal Login &amp; Access</span>
+      <span class="name">Credential Check → Password Reset → Portal Access</span>
+    </div>
+
+    <div class="col">
+
+      <!-- TRIGGER -->
+      <div style="width:460px">
+        <div class="box b-trigger">
+          <p>→ from <a href="#treeB2" style="color:white">Tree B2</a>: Broker onboarded and has submitted a deal<br>Broker navigates to the Questbank Broker Portal login page.</p>
+        </div>
+        <div class="pills">
+          <span class="pill p-brk">Broker</span>
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-uc">BRK-03</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- Login page loads -->
+      <div style="width:100%">
+        <div class="blabel blabel-green" style="width:50%;margin:0 auto 5px;text-align:center">Broker navigates to Broker Portal URL</div>
+        <div class="box b-green">
+          <ol>
+            <li>The Broker Portal login page loads in English by default.</li>
+            <li>The login page displays a language toggle; broker may switch to French before logging in. This toggle is session-level only and does not update the Salesforce language preference.</li>
+            <li>Broker toggles display language from English to French.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-uc">BRK-03</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+      <div class="hline"></div>
+
+      <!-- ── DECISION 1: Does broker have credentials? ── -->
+      <div class="split" style="align-items:stretch">
+
+        <!-- FALLBACK: No credentials -->
+        <div class="branch-fallback" style="width:20%">
+          <div class="vline"></div>
+          <div class="blabel blabel-amber">Broker does not have credentials<br>OR does not know their username</div>
+          <div style="width:100%">
+            <div class="box b-amber">
+              <ol>
+                <li>Broker cannot proceed with self-serve login.</li>
+                <li>Broker can contact their Business Development Manager (if known) or reach out via phone or email.</li>
+                <li>Broker contacts lender via <strong>phone or email</strong> and requests credentials or username recovery.</li>
+                <li>Lender contact verifies broker identity and reissues or resets portal access.</li>
+                <li>New credentials are issued to broker in their <strong>Salesforce language preference</strong>.</li>
+                <li>Broker returns to the login page with new credentials.</li>
+              </ol>
+            </div>
+            <div class="pills">
+              <span class="pill p-brk">Broker</span>
+              <span class="pill p-ob">Lender Contact</span>
+              <span class="pill p-sf">Salesforce</span>
+              <span class="pill p-uc">BRK-03</span>
+              <span class="pill p-fr">FR-08</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- HAPPY PATH: Has credentials -->
+        <div class="branch-main">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">Broker has credentials and knows username</div>
+          <div class="col">
+
+            <!-- Enter credentials -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>Broker enters their username and password on the login page.</li>
+                  <li>Broker submits the login form.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-bp">Broker Portal</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+            <div class="hline"></div>
+
+            <!-- ── DECISION 2: Does password work? ── -->
+            <div class="split" style="align-items:stretch">
+
+              <!-- FALLBACK: Password fails → reset flow -->
+              <div class="branch-fallback" style="width:75%">
+                <div class="vline"></div>
+                <div class="blabel blabel-amber">Password does not work / login rejected</div>
+                <div class="col">
+
+                  <!-- Initiate reset -->
+                  <div style="width:100%">
+                    <div class="box b-amber">
+                      <ol>
+                        <li>Broker selects the <strong>"Forgot Password"</strong> (in French) link on the login page.</li>
+                        <li>Broker enters their username or registered email address and selects "Continuer (French)".</li>
+                        <li>Portal displays a confirmation message in French that a reset link has been sent.</li>
+                        <li>Salesforce sends the password reset email in the broker's <strong>Salesforce-stored language preference</strong> — independent of the login page toggle.</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-brk">Broker</span>
+                      <span class="pill p-bp">Broker Portal</span>
+                      <span class="pill p-sf">Salesforce</span>
+                      <span class="pill p-uc">BRK-03</span>
+                      <span class="pill p-uc">B08</span>
+                      <span class="pill p-fr">FR-08</span>
+                    </div>
+                    <div class="note"><strong>Note:</strong> Login page toggle controls only the login page UI. The password reset email language is always the Salesforce-stored broker preference.</div>
+                  </div>
+
+                  <div class="vline"></div>
+                  <div class="hline"></div>
+
+                  <!-- ── DECISION 3: Reset email received? ── -->
+                  <div class="split" style="align-items:stretch">
+
+                    <!-- FALLBACK: Email not received -->
+                    <div class="branch-fallback">
+                      <div class="vline"></div>
+                      <div class="blabel blabel-red">Reset email not received</div>
+                      <div style="width:100%" id="no-email-box">
+                        <div class="box b-red">
+                          <ol>
+                            <li>Broker does not receive the password reset email (e.g. spam filter, wrong email on file, delivery issue).</li>
+                            <li>Broker contacts their Questbank representative via <strong>phone or email</strong> to request a manual credential reset.</li>
+                          </ol>
+                        </div>
+                        <div class="pills">
+                          <span class="pill p-brk">Broker</span>
+                          <span class="pill p-ob">Lender / Onboarding Team</span>
+                          <span class="pill p-uc">BRK-03</span>
+                        </div>
+                      </div>
+                      <div class="vline"></div>
+                      <div style="width:100%" id="email-reset-box">
+                        <div class="box b-amber">
+                          <ol>
+                            <li>Lender verifies broker identity, resets credentials, and resends portal access in the broker's <strong>Salesforce language preference</strong>.</li>
+                            <li>Broker returns to login page with new credentials.</li>
+                          </ol>
+                        </div>
+                        <div class="pills">
+                          <span class="pill p-ob">Lender / Onboarding Team</span>
+                          <span class="pill p-sf">Salesforce</span>
+                          <span class="pill p-uc">BRK-03</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Email received → check link -->
+                    <div class="branch-equal">
+                      <div class="vline"></div>
+                      <div class="blabel blabel-green">Reset email received</div>
+                      <div class="col">
+
+                        <div style="width:100%">
+                          <div class="box b-amber">
+                            <ol>
+                              <li>Broker opens the reset email. Subject line, body, and reset button are all in the <strong>Salesforce language preference</strong>.</li>
+                              <li>Broker selects the password reset link in the email.</li>
+                            </ol>
+                          </div>
+                          <div class="pills">
+                            <span class="pill p-brk">Broker</span>
+                            <span class="pill p-sf">Salesforce</span>
+                            <span class="pill p-uc">B08</span>
+                            <span class="pill p-nfr">NFR-13</span>
+                          </div>
+                        </div>
+
+                        <div class="vline"></div>
+                        <div class="hline"></div>
+
+                        <!-- ── DECISION 4: Reset link works? ── -->
+                        <div class="split" style="align-items:stretch">
+
+                          <!-- FALLBACK: Link broken/expired -->
+                          <div class="branch-equal">
+                            <div class="vline"></div>
+                            <div class="blabel blabel-red">Link expired or broken</div>
+                            <div style="width:100%" id="bad-link-box">
+                              <div class="box b-red">
+                                <ol>
+                                  <li>Reset link is expired or does not open correctly.</li>
+                                  <li>Broker contacts their Questbank representative via <strong>phone or email</strong>.</li>
+                                </ol>
+                              </div>
+                              <div class="pills">
+                                <span class="pill p-brk">Broker</span>
+                                <span class="pill p-ob">Lender / Onboarding Team</span>
+                                <span class="pill p-uc">BRK-03</span>
+                              </div>
+                            </div>
+                            <div class="vline"></div>
+                            <div style="width:100%" id="link-reset-box">
+                              <div class="box b-amber">
+                                <ol>
+                                  <li>Lender resets credentials manually and resends portal access in the broker's <strong>Salesforce language preference</strong>.</li>
+                                  <li>Broker returns to login page with new credentials.</li>
+                                </ol>
+                              </div>
+                              <div class="pills">
+                                <span class="pill p-ob">Lender / Onboarding Team</span>
+                                <span class="pill p-sf">Salesforce</span>
+                                <span class="pill p-uc">BRK-03</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Link works → set new password -->
+                          <div class="branch-equal">
+                            <div class="vline"></div>
+                            <div class="blabel blabel-green">Link opens successfully</div>
+                            <div class="col">
+
+                              <div style="width:100%" id="reset-success-box">
+                                <div class="box b-amber">
+                                  <ol>
+                                    <li>Reset Password page opens in the broker's <strong>Salesforce language preference</strong>.</li>
+                                    <li>Broker enters and confirms their new password and submits.</li>
+                                    <li>Password reset is successful. Broker is redirected to the login page.</li>
+                                    <li>Broker enters their username and new password and logs in.</li>
+                                  </ol>
+                                </div>
+                                <div class="pills">
+                                  <span class="pill p-brk">Broker</span>
+                                  <span class="pill p-bp">Broker Portal</span>
+                                  <span class="pill p-sf">Salesforce</span>
+                                  <span class="pill p-uc">BRK-03</span>
+                                  <span class="pill p-uc">B08</span>
+                                  <span class="pill p-fr">FR-08</span>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+
+                        </div><!-- end decision 4 -->
+
+                      </div>
+                    </div>
+
+                  </div><!-- end decision 3 -->
+
+                  <br><br><br>
+                  <!-- Reset / recovery paths converge -->
+                  <div style="display:flex;align-items:center;width:100%;margin-bottom:4px" id="converge-reset">
+                    <div style="flex:1;height:1px;border-top:2px dashed #f9a825;margin-right:8px"></div>
+                    <span style="font-size:9px;font-weight:700;color:#e65100;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Credential &amp; password reset paths converge</span>
+                    <div style="flex:1;height:1px;border-top:2px dashed #f9a825;margin-left:8px"></div>
+                  </div>
+                  <div style="width:100%" id="reset-login-box">
+                    <div class="box b-teal">
+                      <ol>
+                        <li>Authentication is successful.</li>
+                        <li>An account verification step may be triggered (e.g. MFA). Any verification email is sent in the broker's <strong>Salesforce language preference</strong>.</li>
+                        <li>Broker completes any verification step and is logged into the Broker Portal.</li>
+                        <li>Broker Portal UI renders in the broker's <strong>Salesforce language preference</strong> (French or English).</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-brk">Broker</span>
+                      <span class="pill p-bp">Broker Portal</span>
+                      <span class="pill p-sf">Salesforce</span>
+                      <span class="pill p-uc">BRK-03</span>
+                      <span class="pill p-fr">FR-08</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div><!-- end password reset branch -->
+
+              <!-- HAPPY PATH: Password works -->
+              <div class="branch-main">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">Password accepted</div>
+                <div class="col">
+                  <div style="width:100%" id="login-success-box">
+                    <div class="box b-green">
+                      <ol>
+                        <li>Authentication is successful.</li>
+                        <li>An account verification step may be triggered (e.g. MFA). Any verification email is sent in the broker's <strong>Salesforce language preference</strong>.</li>
+                        <li>Broker completes any verification step and is logged into the Broker Portal.</li>
+                        <li>Broker Portal UI renders in the broker's <strong>Salesforce language preference</strong> (French or English).</li>
+                      </ol>
+                    </div>
+                    <div class="pills">
+                      <span class="pill p-brk">Broker</span>
+                      <span class="pill p-bp">Broker Portal</span>
+                      <span class="pill p-sf">Salesforce</span>
+                      <span class="pill p-uc">BRK-03</span>
+                      <span class="pill p-fr">FR-08</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- end decision 2 -->
+
+          </div>
+        </div><!-- end has-credentials branch -->
+
+      </div><!-- end decision 1 -->
+
+      <br><br><br><br>
+
+      <!-- CONVERGENCE: all successful login paths -->
+      <div style="width:75%;display:flex;align-items:center;margin-bottom:4px;margin-left:auto" id="converge-login">
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-right:8px"></div>
+        <span style="font-size:9px;font-weight:700;color:#2e7d32;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Successful login paths converge</span>
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-left:8px"></div>
+      </div>
+
+      <!-- Terminal -->
+      <div style="width:75%;margin-left:auto">
+        <div class="box b-purple">
+          <p>→ Broker authenticated and in the portal. Proceed to <strong><a href="#treeB4">Tree B4: Broker Portal Language Display &amp; Deal Access</a></strong>.</p>
+        </div>
+        <div class="pills">
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-uc">BRK-03</span>
+          <span class="pill p-uc">BRK-04</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+
+      <!-- REQUIREMENTS TABLE -->
+      <div style="width:100%;margin-top:28px">
+        <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+        <table class="req-table">
+          <thead>
+            <tr><th>Req ID</th><th>Type</th><th>Summary</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill p-fr">FR-08</span></td>
+              <td>Functional</td>
+              <td>Broker Portal &amp; Kapti must support bilingual French/English display. Language preference captured at onboarding and saved to Salesforce. Broker can toggle portal language. Kapti inherits the portal language.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-14</span></td>
+              <td>Functional</td>
+              <td>Salesforce must store broker language preference. Emails and correspondence to brokers — including password reset and credential emails — are sent in the recorded language preference.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-13</span></td>
+              <td>Non-Functional</td>
+              <td>All systems including Broker Portal and Salesforce must correctly handle French-accented characters (é, à, ê, ç, etc.) in broker names, email content, and all free-form fields.</td>
+              <td>Must Have</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Assumptions -->
+      <div style="width:100%;margin-top:16px">
+        <div class="section-label">Key Assumptions (AS)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-03:</strong> All broker communication defaults to French unless an English preference is explicitly stated. Credential and reset emails default to French for Quebec brokers.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>Login page toggle vs. Salesforce preference:</strong> The login page language toggle is session-level only. Password reset email language and portal UI language after login are both governed by the Salesforce-stored broker preference — not the login page toggle.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>Manual reset paths:</strong> Both failure points in the password reset flow (no email, bad link) resolve the same way — broker contacts Lender directly. Lender resets credentials and resends in broker's Salesforce language preference.</div>
+        </div>
+      </div>
+
+    </div><!-- end col -->
+  </section>
+
+  <!-- ============================================================
+       TREE B4 — Quebec Broker Portal Language Display, Kapti
+       Document Upload & Messaging
+       ============================================================ -->
+  <section class="tree" id="treeB4">
+    <svg class="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tree-head">
+      <span class="tag">Tree B4 · Quebec Broker Portal Language Display, Kapti Document Upload &amp; Messaging</span>
+      <span class="name">UI Language (broker preference) → Deal Language (conditions) → Kapti Upload → Broker–Lender Messaging</span>
+    </div>
+
+    <div class="col">
+
+      <!-- TRIGGER -->
+      <div style="width:460px">
+        <div class="box b-trigger">
+          <p>→ from <a href="#treeB3" style="color:white">Tree B3</a>: Broker successfully logs in to Broker Portal.</p>
+        </div>
+        <div class="pills">
+          <span class="pill p-brk">Broker</span>
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-uc">BRK-04</span>
+          <span class="pill p-fr">FR-08</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- UI language renders -->
+      <div style="width:100%">
+        <div class="blabel blabel-green" style="width:60%;margin:0 auto 5px;text-align:center">Portal UI renders in the broker's saved language preference</div>
+        <div class="box b-green">
+          <ol>
+            <li>The entire Broker Portal UI — navigation, menus, buttons, field labels, system messages — renders in the broker's <strong>Salesforce-stored language preference</strong> (French <em>or</em> English).</li>
+            <li>A Quebec broker whose preference is French sees the full UI in French; a broker whose preference is English sees the full UI in English.</li>
+            <li>This UI language is fixed for the session and does <strong>not</strong> change based on which deal the broker opens (see Decision 2).</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-sf">Salesforce</span>
+          <span class="pill p-uc">BRK-04</span>
+          <span class="pill p-fr">FR-08</span>
+          <span class="pill p-nfr">NFR-13</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+      <div class="hline"></div>
+
+      <!-- ── DECISION 1: Does broker want a different UI language? ── -->
+      <div class="split" style="align-items:stretch">
+
+        <!-- AMBER PATH: Broker wants UI language changed — lender must intervene -->
+        <div class="branch-fallback" style="width:34%">
+          <div class="vline"></div>
+          <div class="blabel blabel-amber">Broker wants their portal UI in a different language</div>
+          <div style="width:100%">
+            <div class="box b-amber">
+              <ol>
+                <li>The broker <strong>cannot</strong> change their saved language preference themselves — there is no self-serve UI language setting in the portal.</li>
+                <li>Broker requests a language-preference change from the lender (Business Development Manager or onboarding contact) via phone or email.</li>
+                <li>Lender contact verifies the broker and updates the broker's <strong>language preference in Salesforce</strong>.</li>
+                <li>On the broker's next login (or portal refresh), the full UI re-renders in the newly saved preference.</li>
+              </ol>
+            </div>
+            <div class="pills">
+              <span class="pill p-brk">Broker</span>
+              <span class="pill p-ob">Lender Contact</span>
+              <span class="pill p-sf">Salesforce</span>
+              <span class="pill p-uc">BRK-04</span>
+              <span class="pill p-fr">FR-08</span>
+              <span class="pill p-fr">FR-14</span>
+            </div>
+            <div class="note"><strong>Note:</strong> Lender-controlled only. The broker can <em>request</em> a change but cannot self-serve. This is the saved Salesforce preference — distinct from the session-level login-page toggle in Tree B3.</div>
+          </div>
+        </div>
+
+        <!-- HAPPY PATH: Broker keeps UI language and opens a deal -->
+        <div class="branch-main">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">Broker keeps current UI language and opens a deal</div>
+          <div class="col">
+
+            <!-- Open a deal -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>Broker selects one of the deals assigned to them (a deal they submitted) from the portal deal list.</li>
+                  <li>Each deal carries its own <strong>deal-level language</strong> (French or English), set when the deal was created/submitted — independent of the broker's UI preference.</li>
+                  <li>Portal opens the deal record.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-bp">Broker Portal</span>
+                <span class="pill p-uc">BRK-04</span>
+                <span class="pill p-fr">FR-15</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+            <div class="hline"></div>
+
+            <!-- ── DECISION 2: What is the deal's language? ── -->
+            <div class="split" style="align-items:stretch">
+
+              <!-- FRENCH DEAL -->
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">Deal language = French</div>
+                <div style="width:100%">
+                  <div class="box b-green">
+                    <ol>
+                      <li><strong>Condition titles &amp; condition text display in French.</strong></li>
+                      <li><strong>Documents attached to the deal are in French.</strong></li>
+                      <li>All surrounding <strong>UI elements remain in the broker's preferred language</strong> — e.g. an English-preference broker sees French conditions and French documents inside an English portal shell.</li>
+                    </ol>
+                  </div>
+                  <div class="pills" id="french-deal-box">
+                    <span class="pill p-brk">Broker</span>
+                    <span class="pill p-bp">Broker Portal</span>
+                    <span class="pill p-uc">BRK-04</span>
+                    <span class="pill p-fr">FR-15</span>
+                    <span class="pill p-nfr">NFR-13</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ENGLISH DEAL -->
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">Deal language = English</div>
+                <div style="width:100%">
+                  <div class="box b-green">
+                    <ol>
+                      <li><strong>Condition titles &amp; condition text display in English.</strong></li>
+                      <li><strong>Documents attached to the deal are in English.</strong></li>
+                      <li>All surrounding <strong>UI elements remain in the broker's preferred language</strong> — e.g. a French-preference broker sees English conditions and English documents inside a French portal shell.</li>
+                    </ol>
+                  </div>
+                  <div class="pills" id="english-deal-box">
+                    <span class="pill p-brk">Broker</span>
+                    <span class="pill p-bp">Broker Portal</span>
+                    <span class="pill p-uc">BRK-04</span>
+                    <span class="pill p-fr">FR-15</span>
+                    <span class="pill p-nfr">NFR-13</span>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- end decision 2 -->
+
+          </div>
+        </div><!-- end keeps-UI-language branch -->
+
+      </div><!-- end decision 1 -->
+
+      <br><br><br><br>
+
+      <!-- CONVERGENCE: both deal-language paths -->
+      <div style="width:70%;display:flex;align-items:center;margin-bottom:4px;margin-left:auto" id="converge-deal">
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-right:8px"></div>
+        <span style="font-size:9px;font-weight:700;color:#2e7d32;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">Both deal-language paths converge</span>
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-left:8px"></div>
+      </div>
+      <!-- Deal record loaded — review conditions -->
+      <div style="width:70%;margin-left:auto">
+        <div class="blabel blabel-green" style="width:100%;margin:0 auto 5px;text-align:center">Broker reviews outstanding conditions on the deal</div>
+        <div class="box b-green">
+          <ol>
+            <li>Broker Portal displays the deal's outstanding conditions list. <strong>Condition titles and condition text are displayed in the deal's language</strong> (French or English), independent of the broker's UI preference.</li>
+            <li>All surrounding UI elements — buttons, navigation, field labels — remain in the <strong>broker's Salesforce-stored UI language</strong>.</li>
+            <li>Broker reviews which conditions are outstanding and determines whether to upload documents or send a message to the lender.</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-brk">Broker</span>
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-uc">BRK-04</span>
+          <span class="pill p-fr">FR-08</span>
+          <span class="pill p-fr">FR-15</span>
+          <span class="pill p-nfr">NFR-13</span>
+        </div>
+      </div>
+
+      <div style="width:70%;margin-left:auto">
+
+      <div class="vline"></div>
+      <div class="hline"></div>
+
+      <!-- ── DECISION 3: What does the broker do next? ── -->
+      <div class="split" style="align-items:flex-start;gap:20px">
+
+        <!-- BRANCH A: Upload documents via Kapti -->
+        <div class="branch-equal">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">Broker navigates to Kapti to upload documents</div>
+          <div class="col">
+
+            <!-- Kapti launch -->
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>From the outstanding conditions view in the Broker Portal, broker selects the option to upload documents. This navigates them to <strong>Kapti</strong>.</li>
+                  <li>Kapti launches in the broker's <strong>Salesforce-stored UI language</strong> — the same language preference that governs the Broker Portal. All Kapti UI elements (navigation, buttons, labels, instructions) appear in that language.</li>
+                  <li><strong>Condition titles and condition text within Kapti display in the deal's language</strong> (which may differ from the broker's UI language), consistent with the Broker Portal behaviour.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-bp">Broker Portal</span>
+                <span class="pill p-ka">Kapti</span>
+                <span class="pill p-sf">Salesforce</span>
+                <span class="pill p-uc">BRK-04</span>
+                <span class="pill p-fr">FR-08</span>
+                <span class="pill p-fr">FR-15</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+
+            <!-- Document upload -->
+            <div style="width:100%">
+              <div class="blabel blabel-green" style="margin-bottom:5px">Broker uploads document(s) in Kapti</div>
+              <div class="box b-green">
+                <ol>
+                  <li>Broker selects the condition they are satisfying and attaches the relevant document(s).</li>
+                  <li><strong>Documents are language-agnostic</strong> — Kapti accepts and stores uploaded files regardless of the language the document is written in. No language validation is applied to uploaded content.</li>
+                  <li>Broker confirms the upload. Kapti records the submission against the condition.</li>
+                  <li>Broker may return to the Broker Portal after uploading.</li>
+                </ol>
+              </div>
+              <div class="pills" id="kapti-upload-box">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-ka">Kapti</span>
+                <span class="pill p-uc">BRK-04</span>
+                <span class="pill p-fr">FR-15</span>
+                <span class="pill p-nfr">NFR-13</span>
+              </div>
+            </div>
+
+          </div>
+        </div><!-- end Kapti branch -->
+
+        <!-- BRANCH B: Send/receive messages via Broker Portal -->
+        <div class="branch-equal">
+          <div class="vline"></div>
+  
+          <div class="col">
+
+            <!-- Sending a message -->
+            <div style="width:100%">
+              <div class="blabel blabel-teal" style="margin-bottom:5px">Broker sends a message to the lender</div>
+              <div class="box b-teal">
+                <ol>
+                  <li>From the deal record in the Broker Portal, broker composes a message to the lender.</li>
+                  <li>The broker may write and send the message in <strong>either French or English</strong>, regardless of their saved UI language preference or the deal's language. There is no language restriction on outbound messages.</li>
+                  <li>Message is submitted through the Broker Portal to the lender.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-bp">Broker Portal</span>
+                <span class="pill p-uc">BRK-04</span>
+                <span class="pill p-fr">FR-08</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+
+            <!-- Receiving a message -->
+            <div style="width:100%">
+              <div class="blabel blabel-teal" style="margin-bottom:5px">Broker receives and views a message from the lender</div>
+              <div class="box b-teal">
+                <ol>
+                  <li>Broker receives and can view messages from the lender in the Broker Portal. Messages may arrive in <strong>French or English</strong> — the broker can read and view messages in either language.</li>
+                  <li>The Broker Portal UI surrounding the message (labels, navigation, action buttons) continues to display in the broker's <strong>Salesforce-stored UI language</strong>.</li>
+                </ol>
+              </div>
+              <div class="pills" id="messaging-box">
+                <span class="pill p-brk">Broker</span>
+                <span class="pill p-bp">Broker Portal</span>
+                <span class="pill p-ob">Lender Contact</span>
+                <span class="pill p-uc">BRK-04</span>
+                <span class="pill p-fr">FR-08</span>
+              </div>
+            </div>
+
+          </div>
+        </div><!-- end messaging branch -->
+
+      </div><!-- end decision 3 -->
+
+      <br><br><br><br>
+
+      <!-- CONVERGENCE: Kapti upload + messaging paths -->
+      <div style="width:100%;display:flex;align-items:center;margin:0 auto 4px" id="converge-actions">
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-right:8px"></div>
+        <span style="font-size:9px;font-weight:700;color:#2e7d32;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">All broker action paths converge</span>
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-left:8px"></div>
+      </div>
+
+      <!-- Terminal -->
+      <div style="width:100%">
+        <div class="box b-purple">
+          <p>→ Broker has reviewed conditions, uploaded documents via Kapti, and/or exchanged messages with the lender. Throughout: <strong>UI (Broker Portal + Kapti) = broker's Salesforce language preference</strong> · <strong>Condition titles &amp; text = deal language</strong> · <strong>Uploaded documents = language-agnostic</strong> · <strong>Messages = unrestricted language</strong>. End of B4 flow.</p>
+        </div>
+        <div class="pills">
+          <span class="pill p-brk">Broker</span>
+          <span class="pill p-bp">Broker Portal</span>
+          <span class="pill p-ka">Kapti</span>
+          <span class="pill p-uc">BRK-04</span>
+          <span class="pill p-fr">FR-08</span>
+          <span class="pill p-fr">FR-15</span>
+        </div>
+      </div>
+
+      </div><!-- end 70% right-aligned wrapper -->
+
+      <!-- Post-terminal notes -->
+      <div style="width:100%;margin-top:10px;display:flex;flex-direction:column;gap:8px">
+        <div class="note"><strong>Note — documents are language-agnostic:</strong> Uploaded documents are language-agnostic. A French-preference broker may upload an English document, and vice versa. No language check is performed at upload time.</div>
+        <div class="note"><strong>FYI — mixed-language messaging:</strong> A broker can receive a message from the lender in English and respond in French (or vice versa). The portal does not enforce language matching between incoming and outgoing messages. This is intentional and does not require separate system logic to handle — included here for completeness only.</div>
+      </div>
+
+      <!-- REQUIREMENTS TABLE -->
+      <div style="width:100%;margin-top:28px">
+        <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+        <table class="req-table">
+          <thead>
+            <tr><th>Req ID</th><th>Type</th><th>Summary</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill p-fr">FR-08</span></td>
+              <td>Functional</td>
+              <td>Broker Portal <strong>and Kapti</strong> must support bilingual French/English display. The full UI in both systems renders in the broker's Salesforce-stored language preference. Broker cannot self-change the saved preference; changes are lender-initiated in Salesforce.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-15</span></td>
+              <td>Functional</td>
+              <td>Deal-level content language (condition titles, condition text) is independent of broker UI language, in both the Broker Portal and Kapti. Conditions render in the deal's language. Uploaded documents are language-agnostic — no language validation is applied to uploaded files. <em>(Proposed — reconcile with requirements register.)</em></td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-16</span></td>
+              <td>Functional</td>
+              <td>Broker Portal messaging must support French and English for both sending and receiving, unrestricted by the broker's UI language preference or the deal's language. A broker may send a message in any language and receive messages in any language. <em>(Proposed — reconcile with requirements register.)</em></td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-fr">FR-14</span></td>
+              <td>Functional</td>
+              <td>Salesforce must store broker language preference. Lender updates the preference on request; the Broker Portal and Kapti both inherit it on next login/refresh.</td>
+              <td>Must Have</td>
+            </tr>
+            <tr>
+              <td><span class="pill p-nfr">NFR-13</span></td>
+              <td>Non-Functional</td>
+              <td>All systems including Broker Portal, Kapti, and Salesforce must correctly handle French-accented characters (é, à, ê, ç, etc.) in condition text, document content, messages, broker names, and all free-form fields.</td>
+              <td>Must Have</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Key Assumptions -->
+      <div style="width:100%;margin-top:16px">
+        <div class="section-label">Key Assumptions (AS)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div class="note" style="flex:1;min-width:260px"><strong><a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD#AS-07" style="color:#e65100">AS-07</a> — Three independent language axes:</strong> (1) UI language (Broker Portal + Kapti) = broker's Salesforce preference, constant across the session. (2) Condition content language = the individual deal's language, varies deal to deal. (3) Message language = unrestricted, broker and lender write in whichever language they choose.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong><a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD#AS-04" style="color:#e65100">AS-04</a> — Kapti inherits broker UI language from Salesforce</strong>, the same as the Broker Portal. It does not have its own separate language preference. Condition titles/text in Kapti follow the deal language, same as the portal.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong><a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD#AS-05" style="color:#e65100">AS-05</a> — Documents are language-agnostic:</strong> No language check or validation is applied to files uploaded via Kapti. A broker may upload a document in any language to satisfy any condition.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong><a href="https://coda.io/d/_dc-MvWBVR6u/Quebec-Requirements_suu4aSKD#AS-03" style="color:#e65100">AS-03</a> — No broker self-serve UI language change:</strong> Brokers request a language-preference change from the lender; the lender updates Salesforce. The session-level login-page toggle (Tree B3) does not alter the saved preference.</div>
+        </div>
+      </div>
+
+    </div><!-- end col -->
+  </section>
+
+  <!-- ============================================================
+       TREE U1 — Application Language
+       ============================================================ -->
+  <section class="tree" id="treeU1">
+    <svg class="tree-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="tree-head">
+      <span class="tag">Tree U1 · Application Language</span>
+      <span class="name">How LOS auto-sets the Application Language from the Primary Borrower — with Underwriter override &amp; clear</span>
+    </div>
+
+    <div class="col">
+
+      <!-- TRIGGER -->
+      <div style="width:480px">
+        <div class="box b-trigger"><p>→ from <a href="#treeB2" style="color:white">Tree B2</a>: Deal has been onboarded and assigned.</p></div>
+        <div class="pills">
+          <span class="pill p-los">LOS</span>
+          <span class="pill p-fr">FR-01</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+
+      <!-- Primary borrower language preference input -->
+      <div class="blabel blabel-green" style="width:60%;margin:0 auto 6px">Primary Borrower language preference has been set</div>
+
+      <!-- Initial auto-set -->
+      <div style="width:740px;max-width:100%">
+        <div class="box b-green">
+          <ol>
+            <li>LOS auto-sets the Application Language from the <strong>Primary Borrower's language preference</strong>.</li>
+            <li>The Application Language now tracks the Primary Borrower — this is the default <strong>AUTO mode</strong> (system-managed).</li>
+          </ol>
+        </div>
+        <div class="pills">
+          <span class="pill p-los">LOS</span>
+          <span class="pill p-fr">FR-01</span>
+        </div>
+      </div>
+
+      <div class="vline"></div>
+      <div class="hline"></div>
+
+      <!-- ── DECISION 1: Does the Underwriter manually override? ── -->
+      <div class="split" style="align-items:stretch">
+
+        <!-- BRANCH A: AUTO (no override) -->
+        <div class="branch-equal">
+          <div class="vline"></div>
+          <div class="blabel blabel-green">No manual override — LOS manages the Application Language (AUTO)</div>
+          <div class="col">
+
+            <div style="width:100%">
+              <div class="box b-green">
+                <ol>
+                  <li>The Application Language stays linked to the Primary Borrower's language preference.</li>
+                </ol>
+              </div>
+              <div class="pills"><span class="pill p-los">LOS</span></div>
+            </div>
+
+            <div class="vline"></div>
+            <div class="hline"></div>
+
+            <!-- ── DECISION 2: Primary Borrower / preference changed? ── -->
+            <div class="split" style="align-items:stretch">
+
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-teal">Primary Borrower is changed, OR their language preference changes</div>
+                <div style="width:100%" id="auto-rederive">
+                  <div class="box b-teal">
+                    <ol>
+                      <li>LOS automatically <strong>re-derives</strong> the Application Language = the new Primary Borrower's language preference.</li>
+                      <li>Re-evaluated automatically on every such change.</li>
+                    </ol>
+                  </div>
+                  <div class="pills">
+                    <span class="pill p-los">LOS</span>
+                    <span class="pill p-fr">FR-01</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-green">No change to the Primary Borrower or preference</div>
+                <div style="width:100%" id="auto-unchanged">
+                  <div class="box b-green">
+                    <ol>
+                      <li>The Application Language is unchanged.</li>
+                      <li>It still equals the Primary Borrower's language preference.</li>
+                    </ol>
+                  </div>
+                  <div class="pills"><span class="pill p-los">LOS</span></div>
+                </div>
+              </div>
+
+            </div><!-- end decision 2 -->
+
+          </div>
+        </div><!-- end branch A -->
+
+        <!-- BRANCH B: MANUAL override -->
+        <div class="branch-equal">
+          <div class="vline"></div>
+          <div class="blabel blabel-teal">Underwriter manually sets / overrides the Application Language</div>
+          <div class="col">
+
+            <div style="width:100%">
+              <div class="box b-teal">
+                <ol>
+                  <li>Underwriter manually sets the Application Language to a chosen value.</li>
+                  <li>Mode switches to <strong>MANUAL</strong> — the value is locked to the Underwriter's selection.</li>
+                </ol>
+              </div>
+              <div class="pills">
+                <span class="pill p-uwr">Underwriter</span>
+                <span class="pill p-los">LOS</span>
+                <span class="pill p-fr">FR-01</span>
+              </div>
+            </div>
+
+            <div class="vline"></div>
+
+            <div style="width:100%">
+              <div class="box b-teal">
+                <ol>
+                  <li>The manually-set Application Language persists.</li>
+                  <li>Any change to the Primary Borrower or their language preference does <strong>NOT</strong> replace it.</li>
+                  <li>The manual value persists <strong>permanently</strong>.</li>
+                </ol>
+              </div>
+              <div class="pills"><span class="pill p-los">LOS</span></div>
+            </div>
+
+            <div class="vline"></div>
+            <div class="hline"></div>
+
+            <!-- ── DECISION 3: Underwriter clears the override? ── -->
+            <div class="split" style="align-items:stretch">
+
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-teal">Underwriter clears the Application Language</div>
+                <div style="width:100%" id="cleared-reset">
+                  <div class="box b-teal">
+                    <ol>
+                      <li>The override is cleared.</li>
+                      <li>Application Language <strong>resets</strong> to the current Primary Borrower's language preference.</li>
+                      <li>Returns to <strong>AUTO mode</strong> and resumes tracking future Primary Borrower changes.</li>
+                    </ol>
+                  </div>
+                  <div class="pills">
+                    <span class="pill p-uwr">Underwriter</span>
+                    <span class="pill p-los">LOS</span>
+                    <span class="pill p-fr">FR-01</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="branch-equal">
+                <div class="vline"></div>
+                <div class="blabel blabel-teal">Underwriter keeps the override</div>
+                <div style="width:100%" id="manual-persist">
+                  <div class="box b-teal">
+                    <ol>
+                      <li>The manually-set Application Language persists permanently.</li>
+                      <li>It is immune to all Primary Borrower / language-preference changes.</li>
+                    </ol>
+                  </div>
+                  <div class="pills"><span class="pill p-los">LOS</span></div>
+                </div>
+              </div>
+
+            </div><!-- end decision 3 -->
+
+          </div>
+        </div><!-- end branch B -->
+
+      </div><!-- end decision 1 -->
+
+      <br><br><br><br><br>
+
+      <!-- ── All paths resolve to the current Application Language ── -->
+      <div style="display:flex;align-items:center;width:80%;margin:0 auto 4px" id="converge-lang">
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-right:8px"></div>
+        <span style="font-size:9px;font-weight:700;color:#2e7d32;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap">All paths resolve the current Application Language</span>
+        <div style="flex:1;height:1px;border-top:2px dashed #2e7d32;margin-left:8px"></div>
+      </div>
+
+      <!-- TERMINAL -->
+      <div style="width:62%;margin:0 auto">
+        <div class="box b-purple">
+          <p>→ Conditions are generated and displayed in the current Application Language (French or English).</p>
+        </div>
+        <div class="pills">
+          <span class="pill p-los">LOS</span>
+          <span class="pill p-fr">FR-01</span>
+        </div>
+        <div class="note"><strong>AUTO mode (default):</strong> The Application Language is derived from — and continuously tracks — the Primary Borrower's language preference. Changing the Primary Borrower, or that borrower's preference, re-derives the Application Language.</div>
+        <div class="note"><strong>MANUAL override:</strong> Once an Underwriter sets the Application Language, it is locked and persists permanently. Primary Borrower / language-preference changes no longer affect it.</div>
+        <div class="note"><strong>Clearing the override:</strong> An Underwriter can clear the manual setting, which resets the Application Language to the current Primary Borrower preference and returns the system to AUTO mode (resumes automatic tracking).</div>
+      </div>
+
+      <!-- REQUIREMENTS TABLE -->
+      <div style="width:100%;margin-top:28px">
+        <div class="section-label">Quebec-Specific Requirements Referenced in This Tree</div>
+        <table class="req-table">
+          <thead>
+            <tr><th>Req ID</th><th>Type</th><th>Summary</th><th>Priority</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill p-fr">FR-01</span></td>
+              <td>Functional</td>
+              <td>Application-Level Language Preference set at LOS ingestion based on Primary Borrower language; tracks the Primary Borrower in AUTO mode. Underwriter may manually override (MANUAL mode, persists permanently) or clear the override to return to AUTO mode.</td>
+              <td>Must Have</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ====== ASSUMPTIONS ====== -->
+      <div style="width:100%;margin-top:16px">
+        <div class="section-label">Key Assumptions (AS)</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-15:</strong> When borrowers have differing language preferences, the <strong>Primary Borrower's</strong> preference governs the Application Language.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-16:</strong> An Underwriter's manual override of the Application Language is <strong>permanent</strong> and persists across all future Primary Borrower changes until explicitly cleared.</div>
+          <div class="note" style="flex:1;min-width:260px"><strong>AS-17:</strong> Clearing a manual override returns the Application Language to <strong>AUTO mode</strong>, where it will immediately reset to the current Primary Borrower's language preference and resume automatic tracking.</div>
+        </div>
+      </div>
+
+    </div><!-- end col -->
+  </section>
+
+</div><!-- end track -->
+
+<script>
+/* ============================================================
+   Per-tree SVG connector overlays.
+   Each tree has its own .tree-svg covering its own column, so
+   IDs never collide and coordinates are computed relative to
+   the SVG itself — robust to both horizontal and vertical scroll.
+   ============================================================ */
+function drawConnectors() {
+  document.querySelectorAll('.tree-svg').forEach(function (svg) {
+    svg.innerHTML = '';
+    var panel = svg.closest('.tree');
+    var base = svg.getBoundingClientRect();
+
+    function rect(id) {
+      var el = panel.querySelector('#' + CSS.escape(id));
+      if (!el) return null;
+      var r = el.getBoundingClientRect();
+      return {
+        cx:  r.left - base.left + r.width / 2,
+        top: r.top - base.top,
+        bot: r.bottom - base.top
+      };
+    }
+    function makePath(d, colour) {
+      var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', colour);
+      p.setAttribute('stroke-width', '2');
+      p.setAttribute('stroke-dasharray', '6 3');
+      svg.appendChild(p);
+    }
+
+    /* ---- B2: amber boxes → converge-purple ---- */
+    var cp = rect('converge-purple');
+    if (cp) {
+      var tgtX = cp.cx, tgtY = cp.top + (cp.bot - cp.top) / 2 - 10;
+      ['amber-box-1', 'amber-box-2', 'amber-box-3'].forEach(function (id) {
+        var s = rect(id);
+        if (!s) return;
+        var midY = s.bot + (tgtY - s.bot) * 0.5;
+        makePath('M ' + s.cx + ' ' + s.bot + ' C ' + s.cx + ' ' + midY + ', ' + tgtX + ' ' + midY + ', ' + tgtX + ' ' + tgtY, '#f9a825');
+      });
+    }
+
+    /* ---- B2: purple-box (teal, manager monitoring) + auto-allocate-box → converge-blue ---- */
+    var cb = rect('converge-blue');
+    if (cb) {
+      var bX = cb.cx, bY = cb.top + (cb.bot - cb.top) / 2 - 10;
+      var pb = rect('purple-box');
+      if (pb) {
+        var m1 = pb.bot + (bY - pb.bot) * 0.5;
+        makePath('M ' + pb.cx + ' ' + pb.bot + ' C ' + pb.cx + ' ' + m1 + ', ' + bX + ' ' + m1 + ', ' + bX + ' ' + bY, '#2e7d32');
+      }
+      var aa = rect('auto-allocate-box');
+      if (aa) {
+        var m2 = aa.bot + (bY - aa.bot) * 0.5;
+        makePath('M ' + aa.cx + ' ' + aa.bot + ' C ' + aa.cx + ' ' + m2 + ', ' + bX + ' ' + m2 + ', ' + bX + ' ' + bY, '#2e7d32');
+      }
+    }
+
+    /* ---- B3: credential & password reset paths → converge-reset (yellow) ---- */
+    var crr = rect('converge-reset');
+    if (crr) {
+      var rY = crr.top + (crr.bot - crr.top) / 2 - 6;
+      ['email-reset-box', 'link-reset-box', 'reset-success-box'].forEach(function (id) {
+        var s = rect(id);
+        if (!s) return;
+        var mm = s.bot + (rY - s.bot) * 0.5;
+        makePath('M ' + s.cx + ' ' + s.bot + ' C ' + s.cx + ' ' + mm + ', ' + crr.cx + ' ' + mm + ', ' + crr.cx + ' ' + rY, '#f9a825');
+      });
+    }
+
+    /* ---- B3: password-accepted + recovery login → converge-login (green) ---- */
+    var cl = rect('converge-login');
+    if (cl) {
+      var barY = cl.top;
+
+      /* "Authentication is successful" (Password accepted) box: keep the curve on the
+         right side so it clears the boxes to its lower-left. */
+      var ls = rect('login-success-box');
+      if (ls) {
+        var lTx = ls.cx - 40;
+        var m3 = ls.bot + (barY - ls.bot) * 0.5;
+        makePath('M ' + ls.cx + ' ' + ls.bot + ' C ' + ls.cx + ' ' + m3 + ', ' + lTx + ' ' + m3 + ', ' + lTx + ' ' + barY, '#2e7d32');
+      }
+
+      /* Recovery convergence box (teal — authentication successful via
+         recovery path) → terminal converge point. */
+      var rl = rect('reset-login-box');
+      if (rl) {
+        var m4 = rl.bot + (barY - rl.bot) * 0.5;
+        makePath('M ' + rl.cx + ' ' + rl.bot + ' C ' + rl.cx + ' ' + m4 + ', ' + cl.cx + ' ' + m4 + ', ' + cl.cx + ' ' + barY, '#2e7d32');
+      }
+    }
+
+    /* ---- B4: both deal-language boxes → converge-deal ---- */
+    var cd = rect('converge-deal');
+    if (cd) {
+      var dY = cd.top + (cd.bot - cd.top) / 2 - 6;
+      ['french-deal-box', 'english-deal-box'].forEach(function (id) {
+        var s = rect(id);
+        if (!s) return;
+        var mm = s.bot + (dY - s.bot) * 0.5;
+        makePath('M ' + s.cx + ' ' + s.bot + ' C ' + s.cx + ' ' + mm + ', ' + cd.cx + ' ' + mm + ', ' + cd.cx + ' ' + dY, '#2e7d32');
+      });
+    }
+
+    /* ---- B4: Kapti upload (green) + messaging (teal) → converge-actions ---- */
+    var ca = rect('converge-actions');
+    if (ca) {
+      var aY = ca.top + (ca.bot - ca.top) / 2 - 6;
+      var ku = rect('kapti-upload-box');
+      if (ku) {
+        var mk = ku.bot + (aY - ku.bot) * 0.5;
+        makePath('M ' + ku.cx + ' ' + ku.bot + ' C ' + ku.cx + ' ' + mk + ', ' + ca.cx + ' ' + mk + ', ' + ca.cx + ' ' + aY, '#2e7d32');
+      }
+      var ms = rect('messaging-box');
+      if (ms) {
+        var mq = ms.bot + (aY - ms.bot) * 0.5;
+        makePath('M ' + ms.cx + ' ' + ms.bot + ' C ' + ms.cx + ' ' + mq + ', ' + ca.cx + ' ' + mq + ', ' + ca.cx + ' ' + aY, '#2e7d32');
+      }
+    }
+
+    /* ---- U1: all resolved-state boxes → converge-lang
+       (green for fully-automated boxes, teal for manual/override boxes) ---- */
+    var cv = rect('converge-lang');
+    if (cv) {
+      var tY = cv.top + (cv.bot - cv.top) / 2 - 6;
+      [
+        ['auto-rederive',  '#2e7d32'],
+        ['auto-unchanged', '#2e7d32'],
+        ['cleared-reset',  '#2e7d32'],
+        ['manual-persist', '#2e7d32']
+      ].forEach(function (pair) {
+        var s = rect(pair[0]);
+        if (!s) return;
+        var m = s.bot + (tY - s.bot) * 0.5;
+        makePath('M ' + s.cx + ' ' + s.bot + ' C ' + s.cx + ' ' + m + ', ' + cv.cx + ' ' + m + ', ' + cv.cx + ' ' + tY, pair[1]);
+      });
+    }
+  });
+}
+
+/* ------------------------------------------------------------
+   Align the "Quebec-Specific Requirements" tables across all
+   three flows: measure each flow's height and push the shorter
+   ones' requirements section down so every table starts at the
+   same vertical level on the page.
+   ------------------------------------------------------------ */
+function alignRequirements() {
+  var trees = Array.prototype.slice.call(document.querySelectorAll('.tree'));
+  var reqs = trees.map(function (t) {
+    var lbl = null;
+    t.querySelectorAll('.section-label').forEach(function (s) {
+      if (!lbl && /Quebec-Specific Requirements Referenced/.test(s.textContent)) lbl = s;
+    });
+    return lbl ? lbl.parentElement : null;
+  });
+
+  /* reset to the base margin before measuring */
+  reqs.forEach(function (r) { if (r) r.style.marginTop = '28px'; });
+
+  var gaps = [], maxGap = 0;
+  trees.forEach(function (t, i) {
+    if (!reqs[i]) { gaps[i] = null; return; }
+    var g = reqs[i].getBoundingClientRect().top - t.getBoundingClientRect().top;
+    gaps[i] = g;
+    if (g > maxGap) maxGap = g;
+  });
+
+  trees.forEach(function (t, i) {
+    if (!reqs[i] || gaps[i] == null) return;
+    reqs[i].style.marginTop = (28 + (maxGap - gaps[i])) + 'px';
+  });
+}
+
+function relayout() { alignRequirements(); drawConnectors(); }
+
+window.addEventListener('load', function () { relayout(); setTimeout(relayout, 200); });
+window.addEventListener('resize', relayout);
+
+/* ------------------------------------------------------------
+   Flow-index navigation: scroll the chosen tree into view just
+   to the right of the frozen left panel (so its header/trigger
+   aren't hidden behind it), and highlight the active flow.
+   ------------------------------------------------------------ */
+(function () {
+  var links = Array.prototype.slice.call(document.querySelectorAll('.flow-index a'));
+  var panel = document.querySelector('.side-panel');
+
+  function goTo(id) {
+    var t = document.getElementById(id);
+    if (!t) return;
+    var clearance = (panel ? panel.getBoundingClientRect().width : 300) + 30;
+    var r = t.getBoundingClientRect();
+    window.scrollTo({
+      left: Math.max(0, window.scrollX + r.left - clearance),
+      top:  Math.max(0, window.scrollY + r.top - 16),
+      behavior: 'smooth'
+    });
+    setActive(id);
+    if (history.replaceState) history.replaceState(null, '', '#' + id);
+  }
+
+  function setActive(id) {
+    links.forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+    });
+  }
+
+  links.forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      goTo(a.getAttribute('href').slice(1));
+    });
+  });
+
+  /* Keep the active highlight in sync while scrolling horizontally. */
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      var panelW = panel ? panel.getBoundingClientRect().width : 300;
+      var probe = panelW + (window.innerWidth - panelW) / 2; /* centre of the visible area, viewport coords */
+      var best = null, bestDist = Infinity;
+      document.querySelectorAll('.tree').forEach(function (t) {
+        var r = t.getBoundingClientRect();
+        if (probe >= r.left && probe <= r.right) { best = t.id; bestDist = -1; return; }
+        if (bestDist === -1) return;
+        var d = Math.min(Math.abs(probe - r.left), Math.abs(probe - r.right));
+        if (d < bestDist) { bestDist = d; best = t.id; }
+      });
+      if (best) setActive(best);
+      ticking = false;
+    });
+  }, { passive: true });
+
+  if (location.hash) setActive(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
